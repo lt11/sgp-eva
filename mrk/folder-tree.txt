@@ -1,0 +1,33 @@
+run-N
+|-- aln
+|   `-- wga
+|-- aux
+|-- dif-dst
+|-- dst
+|-- gen
+|   `-- ass
+|-- mrk
+|-- phy
+|   |-- cmb
+|   |-- iqt
+|   |   |-- nuc
+|   |   `-- pggb-msnps
+|   |-- njt
+|   |   |-- nuc
+|   |   |-- odgsim
+|   |   |-- pb2
+|   |   `-- pggb
+|   `-- pb2
+|-- scr
+|-- var
+|   |-- all
+|   |   `-- pggb
+|   |-- small
+|   |   |-- nuc
+|   |   |   |-- ms-vcf
+|   |   |   `-- os-vcf
+|   |   `-- pggb
+|   `-- sv
+|       `-- pggb
+`-- vg
+    `-- pggb

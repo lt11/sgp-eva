@@ -1,0 +1,2746 @@
+---
+title: "Saccharomyces Graph Phylogeny Evaluation"
+author: "Lorenzo Tattini"
+date: "`r Sys.Date()`"
+### html documents may cause problems (knit fails) on Hulk
+### while pdf documents may casue problems (latex fails to compile the tex file
+### of the markdown) on macOS
+output: pdf_document
+---
+
+## Quick Run
+
+This is a list of the things that must be edited to have a quick run working properly:
+
+- check the output format in the title section above (e.g. output: pdf_document)
+- check all chunks with `eval = FALSE`
+- pick the genomes with `nuc_assemblies`
+- set the reference with `id_ref` and `idRef`
+- set `pll_runs`, `pll_threads`, and `pllThreads`
+- set the path the fasta files repository `rep_fastas`
+- set the name of the outgroup with `id_ogroup` and `idOutgroup`
+- set the name of the server where pggb was run (`server_name`) along with the corresponding base folder (`dir_server_base`) and run name (`run_pggb`)
+- activate one chunk among 13 and 14 (for phybwt2 data) and deactivate the other one
+
+## Dependencies and Requirements
+
+- nucmer
+    - show-snps
+    - show-coords
+    - dnadiff
+- samtools
+- bcftools
+- tabix
+- bgzip
+- R libraries
+    - rmarkdown
+    - knitr
+    - data.table
+    - seqinr
+    - here
+    - scriptName
+    - tidyverse
+    - ape
+    - fastreeR
+    - phytools
+    - TreeDist
+- iqtree
+- python3 for `vcf2phylip.py`
+- running the chunks that use `scp` requires a properly configured `.ssh/config` file
+- phybwt2 (with distbwt2)
+
+## Brief Description of the Contents
+
+This markdown evaluates the results of the graph pipeline in terms of phylogeny by comparing its results with those obtained from nucmer alignments and phybwt2.
+
+This is achieved through the following steps:
+
+- preparation of SNPs and indels from nucmer (chunks 1-6)
+- production of the SNPs tree from nucmer with iqtree (chunk 7)
+- classification of SNPs and all the other variants from pggb-vg (chunks 8-10)
+- production of the SNPs tree from pggb-vg with iqtree (chunk 11)
+- calculation of the cosine distances from nucmer and pggb-vg (chunk 12)
+- production/copy of the reference-free cladogram and calculation of the cosine distances from distbwt2 (chunk 13-14)
+- comparison of the distance matrices from nucmer and pggb-vg (15)
+- production of the neighbour joining trees (chunk 16)
+- comparison of the neighbour joining trees (chunk 17)
+- comparison of the trees from iqtree and the neighbour joining algorithm (chunk 18)
+
+The SNPs trees based on the cosine distance that are used to perform the comparison are made in R. The cosine distance from nucmer SNPs is calculated with the package fastreeR.
+
+We also make SNPs trees using iqtree but we use them only to check whether the trees produced in R are meaningful. The reason is that we cannot make a tree with iqtree using as input a distance matrix since iqtree accepts only alignments as input. Plus, we don't want all the modelling in iqtree to affect the comparison.
+
+## TODOs
+
+- presence/absence tree (only from pggb)
+- make the SVs tree from MUM&Co
+- make the SVs tree from pggb
+- make the comparison of SVs trees
+
+## Folders Tree and External Resources
+
+All folders are generated automatically, except `run-N/mrk`, `run-N/scr` and `run-N/aux`. They contain respectively: the markdown, the scripts, and any auxiliary file (headers).
+
+A repository with the fasta sequences is required. The repository is not within the folders tree. This markdown uses the standard repository `~/data/nano-assemblies-pansn-2024`.
+
+The distance measure obtained from `odgi similarity` is also needed. It is stored in the `gra-dss` folder. It is calculated from the variation graph stored in the same folder.
+
+A full run will generate the following tree of folders:
+run-N
+|-- aln
+|   `-- wga
+|-- aux
+|-- dif-dst
+|-- dst
+|-- gen
+|   `-- ass
+|-- mrk
+|-- phy
+|   |-- cmp-apr
+|   |-- cmp-mdl
+|   |-- cmp-nja
+|   |-- iqt
+|   |   |-- nuc
+|   |   `-- pvg-msnps
+|   |-- nja
+|   |   |-- nuc
+|   |   |-- pos
+|   |   |-- db2
+|   |   `-- pvg
+|   `-- pb2
+|-- scr
+|-- var
+|   |-- all
+|   |   `-- pvg
+|   |-- small
+|   |   |-- nuc
+|   |   |   |-- ms-vcf
+|   |   |   `-- os-vcf
+|   |   `-- pvg
+|   `-- sv
+|       `-- pvg
+`-- gra-dss
+
+## How Does `odgi similarity` Work?
+
+It calculates a number of similarity measures and converts them into the corresponding dissimilarity values.
+
+It calculates several similarity measures taking into account how many bases two paths share (checking the nodes their share), and dividing by all bases/nodes of the two paths.
+
+It also calculates the cosine similarity *S~c~*.
+
+## Analysis
+
+First, we need to merge the nuclear genome with mitochondrial genome. This chunk creates the folder `gen/ass` with the formatted fasta genomes. For phased assemblies, the mitochondrial sequence is added only to the first haplotype. The fasta sequences are retrieved from a local repository `~/data/nano-assemblies-pansn-2024`.
+
+```{bash merges nuclear and MT genomes}
+## settings -------------------------------------------------------------------
+
+### all the assemblies including the reference
+nuc_assemblies=('SGDref-0-genome.fa.gz' \
+'BPK-1-genome.fa.gz' \
+'BPK-2-genome.fa.gz' \
+'AIS-1-genome.fa.gz' \
+'AIS-2-genome.fa.gz' \
+'AHL-0-genome.fa.gz' \
+'BFH-1-genome.fa.gz' \
+'BFH-2-genome.fa.gz' \
+'CMF-1-genome.fa.gz' \
+'CMF-2-genome.fa.gz' \
+'BMC_2a-0-genome.fa.gz' \
+'AMH_1a-0-genome.fa.gz' \
+'JXXY161-0-genome.fa.gz' \
+'CBS432-0-genome.fa.gz' \
+'N44-0-genome.fa.gz' \
+'UFRJ50816-0-genome.fa.gz' \
+'UWOPS919171-0-genome.fa.gz' \
+'YPS138-0-genome.fa.gz' \
+'NCYC3947-0-genome.fa.gz')
+### all the assemblies including the reference
+# nuc_assemblies=('SGDref-0-genome.fa.gz' \
+# 'DBVPG6765-0-genome.fa.gz' \
+# 'AAC-1-genome.fa.gz' \
+# 'AAC-2-genome.fa.gz' \
+# 'AAR-0-genome.fa.gz' \
+# 'ABA-0-genome.fa.gz' \
+# 'ABH-0-genome.fa.gz' \
+# 'AFI-0-genome.fa.gz' \
+# 'S288C-0-genome.fa.gz')
+# nuc_assemblies=('SGDref-0-genome.fa.gz' \
+# 'AAB-0-genome.fa.gz' \
+# 'AAC-1-genome.fa.gz' \
+# 'AAC-2-genome.fa.gz' \
+# 'AAR-0-genome.fa.gz' \
+# 'ABA-0-genome.fa.gz' \
+# 'ABH-0-genome.fa.gz' \
+# 'ACH-0-genome.fa.gz' \
+# 'ADE-0-genome.fa.gz' \
+# 'ADI-0-genome.fa.gz' \
+# 'ADM-1-genome.fa.gz' \
+# 'ADM-2-genome.fa.gz' \
+# 'ADQ-0-genome.fa.gz' \
+# 'ADS-0-genome.fa.gz' \
+# 'AEG-0-genome.fa.gz' \
+# 'AEH-0-genome.fa.gz' \
+# 'AEL-1-genome.fa.gz' \
+# 'AEL-2-genome.fa.gz' \
+# 'AFH-0-genome.fa.gz' \
+# 'AFI-0-genome.fa.gz' \
+# 'AGA_1a-0-genome.fa.gz' \
+# 'AGK-0-genome.fa.gz' \
+# 'AHG-0-genome.fa.gz' \
+# 'AHL-0-genome.fa.gz' \
+# 'AIC-0-genome.fa.gz' \
+# 'AIE-0-genome.fa.gz' \
+# 'AIF-1-genome.fa.gz' \
+# 'AIF-2-genome.fa.gz' \
+# 'AIG-0-genome.fa.gz' \
+# 'AIS-1-genome.fa.gz' \
+# 'AIS-2-genome.fa.gz' \
+# 'AKH_1a-0-genome.fa.gz' \
+# 'AKR-1-genome.fa.gz' \
+# 'AKR-2-genome.fa.gz' \
+# 'ALI-1-genome.fa.gz' \
+# 'ALI-2-genome.fa.gz' \
+# 'ALS_1a-0-genome.fa.gz' \
+# 'AMH_1a-0-genome.fa.gz' \
+# 'AMM_1a-0-genome.fa.gz' \
+# 'ANE-0-genome.fa.gz' \
+# 'APG-0-genome.fa.gz' \
+# 'ASB-1-genome.fa.gz' \
+# 'ASB-2-genome.fa.gz' \
+# 'ASG-0-genome.fa.gz' \
+# 'ASN-1-genome.fa.gz' \
+# 'ASN-2-genome.fa.gz' \
+# 'ATM_1a-0-genome.fa.gz' \
+# 'AVB-0-genome.fa.gz' \
+# 'AVI_1a-0-genome.fa.gz' \
+# 'BAF-1-genome.fa.gz' \
+# 'BAF-2-genome.fa.gz' \
+# 'BAG_1a-0-genome.fa.gz' \
+# 'BAH-0-genome.fa.gz' \
+# 'BAI_1a-0-genome.fa.gz' \
+# 'BAK_1a-0-genome.fa.gz' \
+# 'BAL_1a-0-genome.fa.gz' \
+# 'BAM-0-genome.fa.gz' \
+# 'BAP_1a-0-genome.fa.gz' \
+# 'BAQ_1a-0-genome.fa.gz' \
+# 'BBF-1-genome.fa.gz' \
+# 'BBF-2-genome.fa.gz' \
+# 'BBL-0-genome.fa.gz' \
+# 'BBM_1a-0-genome.fa.gz' \
+# 'BCN-0-genome.fa.gz' \
+# 'BFH-1-genome.fa.gz' \
+# 'BFH-2-genome.fa.gz' \
+# 'BFP_1a-0-genome.fa.gz' \
+# 'BHH-0-genome.fa.gz' \
+# 'BLD_1a-0-genome.fa.gz' \
+# 'BMC_2a-0-genome.fa.gz' \
+# 'BPG-0-genome.fa.gz' \
+# 'BPK-1-genome.fa.gz' \
+# 'BPK-2-genome.fa.gz' \
+# 'CAS_1a-0-genome.fa.gz' \
+# 'CBM-1-genome.fa.gz' \
+# 'CBM-2-genome.fa.gz' \
+# 'CCC_1a-0-genome.fa.gz' \
+# 'CCQ_1a-0-genome.fa.gz' \
+# 'CCT_1a-0-genome.fa.gz' \
+# 'CDA-0-genome.fa.gz' \
+# 'CDG_1a-0-genome.fa.gz' \
+# 'CDN_1a-0-genome.fa.gz' \
+# 'CEI_1a-0-genome.fa.gz' \
+# 'CEL_1a-0-genome.fa.gz' \
+# 'CEQ_1a-0-genome.fa.gz' \
+# 'CFA-0-genome.fa.gz' \
+# 'CFF-1-genome.fa.gz' \
+# 'CFF-2-genome.fa.gz' \
+# 'CIC-1-genome.fa.gz' \
+# 'CIC-2-genome.fa.gz' \
+# 'CIH-1-genome.fa.gz' \
+# 'CIH-2-genome.fa.gz' \
+# 'CKB-1-genome.fa.gz' \
+# 'CKB-2-genome.fa.gz' \
+# 'CLL-1-genome.fa.gz' \
+# 'CLL-2-genome.fa.gz' \
+# 'CLN-0-genome.fa.gz' \
+# 'CMF-1-genome.fa.gz' \
+# 'CMF-2-genome.fa.gz' \
+# 'CNT-1-genome.fa.gz' \
+# 'CNT-2-genome.fa.gz' \
+# 'CPG_1a-0-genome.fa.gz' \
+# 'CQS_1a-0-genome.fa.gz' \
+# 'CRB_1a-0-genome.fa.gz' \
+# 'DBVPG6044-0-genome.fa.gz' \
+# 'YPS128-0-genome.fa.gz' \
+# 'UWOPS034614-0-genome.fa.gz')
+
+### fasta repository
+rep_fastas="${HOME}/data/nano-assemblies-pansn-2024"
+
+### base folder, the classic:
+### dir_full=$(cd $(dirname "${0}") && pwd)
+### dir_base=$(dirname "${dir_full}")
+### does not work for a markdown
+dir_base=$(dirname "${PWD}")
+
+## clmnt ----------------------------------------------------------------------
+
+### clean and make folders
+dir_gen="${dir_base}/gen"
+if [[ -d "${dir_gen}" ]]; then 
+  rm -rf "${dir_gen}"
+  mkdir -p "${dir_gen}"
+fi
+dir_ass="${dir_gen}/ass"
+mkdir -p "${dir_ass}"
+
+### process the assemblies
+cd "${dir_ass}"
+for file_fasta in "${nuc_assemblies[@]}"; do
+  mito_id=$(basename "${file_fasta}" | cut -f 1 -d "-") # e.g. ADE
+  mito_name="${mito_id}-mt-genome.fa.gz"
+  mito_path=$(find "${rep_fastas}" -name "${mito_name}")
+  fasta_path=$(find "${rep_fastas}" -name "${file_fasta}")
+  asse_type=$(basename "${file_fasta}" | cut -f 2 -d "-") # e.g. 0 or 1
+  if [[ -f "${mito_path}" ]] && [[ "${asse_type}" != "2" ]]; then
+    gunzip -c "${fasta_path}" "${mito_path}" > "./nuc-temp.fa"
+  else
+    gunzip -c "${fasta_path}" > "./nuc-temp.fa"
+  fi
+  strain_id=$(basename "${file_fasta}" | cut -f 1,2 -d "-") # e.g. ADE-0
+  mv -f "./nuc-temp.fa" "${strain_id}-genome.fa"
+done
+
+cd "${dir_base}/mrk"
+
+```
+
+Here, we align (whole-genome vs whole-genome) any assembly against the reference. We only perform the direct alignment (compared to mulo's "double alignment and intersection" strategy). We do not want to reduce the number of variants called.
+
+For this analysis we do not use *a priori* information regarding the collinearity of the genomes used. In other words, even if a genome is known to be collinear with respect to the reference, it is aligned with nucmer in a whole-genome manner rather than the typical chromosome-by-chromosome approach (which is known to provide, in some cases, better alignments and thus more markers, as in the case documented in the mulo paper, Tattini *et al.*, MBE, 2019). The reason of this choice is that we want to conduct an unbiased comparison of the results of classical pipelines against the graph pipelines.
+
+The alignment of YPS128 (reference) vs DBVPG6765 produces 72893 SNPs, 6.2% less than the mulo approach (78064 SNPs with the chromosome-by-chromosome double alignment). Remarkably, in the 8 YPS128 x DBVPG6765 MALs (Tattini *et al.*, MBE, 2019) mulo uses only 63984 ± 454 SNPs to call LOHs. Thus, the \~ 14000 missing SNPs account for low-quality SNPs, non-matching ALT alleles, and mitochondrial SNPs (627).
+
+The intersection of the 72893 - 638 = 72255 nuclear SNPs identified here and the 63615 nuclear SNPs used to call LOHs in sample A887R54 from the mulo paper produces 63174 loci.
+
+The alignment of S288C (reference) vs SK1 produces 62123 SNPs, 17.8% less than the mulo approach (75547 SNPs with the chromosome-by-chromosome double alignment).
+
+The alignment of SK1 (reference) vs S288C produces 70678 SNPs, 6.4% less than the mulo approach (75547 SNPs with the chromosome-by-chromosome double alignment).
+
+```{bash runs the direct alignments with nucmer}
+## settings -------------------------------------------------------------------
+
+### base folder, the classic:
+### dir_full=$(cd $(dirname "${0}") && pwd)
+### dir_base=$(dirname "${dir_full}")
+### does not work for a markdown
+dir_base=$(dirname "${PWD}")
+### parallel runs
+pll_runs=22
+### suppress long messages from background processes
+set +m
+### reference
+id_ref=('SGDref-0')
+
+## clmnt ----------------------------------------------------------------------
+
+## whole-genome alignment -----------------------------------------------------
+
+### clean and make the output folder
+dir_out="${dir_base}/aln/wga"
+if [[ -d "${dir_out}" ]]; then 
+  rm -rf "${dir_out}"
+fi
+mkdir -p "${dir_out}"
+
+### move into input/working folder and find the reference fasta
+dir_in="${dir_base}/gen/ass"
+cd "${dir_in}"
+ref_fasta=$(find . -name "${id_ref}-genome.fa")
+
+### direct search, e.g. 1 vs 2
+arr_fasta=( $(find . -name "*fa") )
+dim_seq_dim=$(echo "${#arr_fasta[@]}")
+
+pll_check=$((pll_runs + 1))
+for (( ind_i=0; ind_i<dim_seq_dim; ind_i++ )); do
+  ((cnt_p++))
+  if (( cnt_p % pll_check == 0 )); then
+    wait
+  fi
+  
+  name_i=$(echo "${arr_fasta[ind_i]}" | sed 's|-genome\.fa||' | sed 's|^..||')
+  if [[ "${id_ref}" ==  "${name_i}" ]]; then
+    continue
+  fi
+  
+  (
+  out_prefix="${id_ref}-vs-${name_i}"
+  
+  ### go nucmer, go!
+  nucmer --prefix="${dir_out}/${out_prefix}-wg" \
+  "${ref_fasta}" ${arr_fasta[ind_i]}
+  
+  # delta-filter -u 100 "${dir_out}/${out_prefix}-wg.delta" \
+  # > "${dir_out}/${out_prefix}-wg-flt.delta"
+  
+  show-snps -THC "${dir_out}/${out_prefix}-wg.delta" \
+  > "${dir_out}/${out_prefix}-var.txt"
+  
+  show-coords -TH "${dir_out}/${out_prefix}-wg.delta" \
+  > "${dir_out}/${out_prefix}-coords.txt"
+  
+  dnadiff -d "${dir_out}/${out_prefix}-wg.delta" \
+  -p "${dir_out}/${out_prefix}"
+  
+  ### \rm "${dir_out}/${out_prefix}-wg.delta"
+  ) &
+done
+
+wait
+
+cd "${dir_base}/mrk"
+
+```
+
+Now we can convert the nucmer output to a vcf file.
+
+```{r makes the single-sample SNPs/indels files}
+## header ---------------------------------------------------------------------
+
+options(java.parameters="-Xmx16G")
+options(scipen = 999)
+options(stringsAsFactors = F)
+rm(list = ls())
+library(data.table)
+library(seqinr)
+library(here)
+library(scriptName)
+
+## settings -------------------------------------------------------------------
+
+### fixed settings
+dirBase <- dirname(here())
+### dev
+### dirBase <- "/Users/Lorenzo/prog/graphs/sgp-eva/run-2"
+
+dirOut <- file.path(dirBase, "var", "small", "nuc", "os-vcf")
+unlink(dirOut, recursive = T)
+dir.create(path = dirOut, showWarnings = F, recursive = T)
+dirWgAln <- file.path(dirBase, "aln", "wga")
+dirGenomes <- file.path(dirBase, "gen", "ass")
+
+### the reference sequence
+idRef <- "SGDref-0"
+pathRef <- list.files(path = dirGenomes,
+                      pattern = paste0(idRef, "-genome.fa$"),
+                      full.names = T)
+
+### Buff_noaln is [BUFF]: the distance from this SNP to the nearest mismatch 
+### (end of alignment, indel, SNP, etc) in the same alignment.
+### Dist_seqend is [DIST]: the distance from this SNP 
+### to the nearest sequence end.
+hdShowSnp <- c("Pos_a1", "Allele_a1", "Allele_a2", "Pos_a2",
+               "Buff_noaln", "Dist_seqend", "Strand_a1", "Strand_a2",
+               "Chrom_a1", "Chrom_a2")
+hdShowSnpNoC <- c("Pos_a1", "Allele_a1", "Allele_a2", "Pos_a2",
+                  "Buff_noaln", "Dist_seqend", "Nrep_a1", "Nrep_a2",
+                  "Strand_a1", "Strand_a2", "Chrom_a1", "Chrom_a2")
+allChr <- c("chrI", "chrII", "chrIII", "chrIV",
+            "chrV", "chrVI", "chrVII", "chrVIII",
+            "chrIX", "chrX", "chrXI", "chrXII",
+            "chrXIII", "chrXIV", "chrXV", "chrXVI", "chrMT")
+strColnamesVcf <- c("Chrom_id", "Pos_bp", "Rs_id", "Ref_allele", "Alt_allele",
+                    "Qual_val", "Filter_tag", "Info_str", "Format_str",
+                    "Sample_data")
+
+## clmnt ----------------------------------------------------------------------
+
+### script name
+myName <- current_filename()
+### a WARNING message is issued if the fasta does not end
+### with a newline control character
+cat("[", myName, "] ",
+    "Reading the reference fasta file. ",
+    "A warning message is issued if the fasta does not end with a newline!",
+    "\n", sep = "")
+
+### a list of vectors (one for chromosome) whose elements are single bases
+lsVtFasta <- read.fasta(file = pathRef, seqtype = "DNA",
+                        as.string = F, forceDNAtolower = F)
+
+### reading
+stringInfo <- readLines(con = file.path(dirBase, "aux", "info-vcf.txt"),)
+allFiles <- list.files(path = dirWgAln, pattern = "var.txt$", full.names = T)
+
+## index the fasta files ------------------------------------------------------
+strSamtIndex <- "samtools faidx "
+allFastas <- list.files(path = dirGenomes, pattern = "fa$", full.names = T)
+for (indS in allFastas) {
+  strSamtIndexIndF <- paste0(strSamtIndex, indS)
+  system(strSamtIndexIndF)
+}
+
+### dev
+### indF <- allFiles[1]
+for (indF in allFiles) {
+  
+  ## load nucmer data ---------------------------------------------------------
+  
+  dtNucmer <- fread(indF, header = F, sep = "\t", na.strings = "antani")
+  colnames(dtNucmer) <- hdShowSnp
+  
+  ## prepare the header -------------------------------------------------------
+  
+  headerVcf <- c("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t")
+  nameSample <- basename(indF)
+  idSample <- paste(unlist(strsplit(nameSample, split = "-"))[4:5],
+                    collapse = "-")
+  string1 <- "##fileformat=VCFv4.3"
+  string2 <- paste0("##fileDate=", date())
+  string3 <- paste0("##source=nucmer v4.0.0")
+  stringH <- paste0(headerVcf, idSample)
+  nameRef <- paste(unlist(strsplit(nameSample, split = "-"))[1:2],
+                   collapse = "-")
+  pathRef <- list.files(path = dirGenomes,
+                        pattern = paste0(nameRef, ".*fa$"),
+                        full.names = T, recursive = F)
+  stringRef <- paste0("##reference=", pathRef)
+  pathRefFai <- paste0(pathRef, ".fai")
+  
+  dtFai <- fread(pathRefFai, header = F,
+                 sep = "\t", na.strings = "antani")[, c(1, 2)]
+  colnames(dtFai) <- c("Chrom_id", "Len_bp")
+  stringContig <- paste0("##contig=<ID=",
+                         dtFai$Chrom_id, ",length=", dtFai$Len_bp, ">")
+
+  ## SNPs ---------------------------------------------------------------------
+  
+  ### set SNPs output file
+  fileOut <- sub(pattern = "-var\\.txt", replacement = "-snps.vcf",
+                 x = basename(indF))
+  pathOut <- file.path(dirOut, fileOut)
+  
+  ### make the header for SNPs
+  cat(string1, string2, string3,
+      stringRef,
+      stringContig,
+      stringInfo,
+      stringH,
+      file = pathOut, sep = "\n")
+  
+  ### filter out indels
+  dtSNPs <- dtNucmer[Allele_a1 != "."
+                     & Allele_a2 != "."]
+  nR <- nrow(dtSNPs)
+  dtVCF <- data.table(dtSNPs$Chrom_a1, dtSNPs$Pos_a1, rep(".", nR),
+                      dtSNPs$Allele_a1, dtSNPs$Allele_a2, rep(60, nR),
+                      rep(".", nR), # FILTER
+                      rep(".", nR), # INFO
+                      rep("GT:FRMR:FRMQ:CHRQ:STARTQ:ENDQ", nR), # FORMAT
+                      paste("1", dtSNPs$Strand_a1, dtSNPs$Strand_a2,
+                            dtSNPs$Chrom_a2, dtSNPs$Pos_a2,
+                            ".", sep = ":"))
+  ### sorting by chromosome and position the full vcf file
+  dtVCF <- dtVCF[order(match(dtVCF$V1, allChr), dtVCF$V2), ]
+  
+  ### append the vcf to the corresponding header (with the correct sample name)
+  fwrite(x = dtVCF, file = pathOut, append = T, quote = F,
+              sep = "\t", row.names = F, col.names = F)
+
+  ## indels -------------------------------------------------------------------
+  
+  ### set indels output file
+  fileIndelOut <- sub(pattern = "-var\\.txt", replacement = "-indels.vcf",
+                      x = basename(indF))
+  pathOut <- file.path(dirOut, fileIndelOut)
+  
+  ### make the header for indels
+  cat(string1, string2, string3,
+      stringRef,
+      stringContig,
+      stringInfo,
+      stringH,
+      file = pathOut, sep = "\n", append = F)
+  
+  ### filter out SNPs
+  dtIndels <- dtNucmer[Allele_a1 == "."
+                       | Allele_a2 == "."]
+  
+  hdShowSnp <- c("Pos_a1", "Allele_a1", "Allele_a2", "Pos_a2",
+                 "Buff_noaln", "Dist_seqend", "Strand_a1", "Strand_a2",
+                 "Chrom_a1", "Chrom_a2")
+  
+  ### the data-table in nucmer format
+  dtNucIndels <- dtNucmer[Allele_a1 == "."
+                          | Allele_a2 == "."]
+  
+  ## group nucmer single-base data to single events ---------------------------
+  
+  ### nucmer output:
+  ### - insertions are represented by dots in the REF column (Allele_a1),
+  ###   all these dots have the same coordinate (Pos_a1)
+  ### - deletions are represented by dots in the ALT column (Allele_a2),
+  ###   these dots have the same coordinate (Pos_a2)
+  
+  ### single events are identified by the leftmost base
+  
+  for (indC in unique(dtNucIndels[["Chrom_a1"]])) {
+    dtNucIndelsChr <- dtNucIndels[Chrom_a1 == indC]
+    
+    ### grouping inserted base-pairs in one single event,
+    ### and making the vcf entry
+    dtNucChrDel <- dtNucIndelsChr[Allele_a1 == "."]
+    lsRleRef <- rle(dtNucChrDel[["Pos_a1"]])
+    nDel <- length(lsRleRef$lengths)
+    strREF <- character(length = nDel)
+    strALT <- character(length = nDel)
+    strFRMR <- character(length = nDel)
+    strFRMQ <- character(length = nDel)
+    strCHRQ <- character(length = nDel)
+    strSTARTQ <- character(length = nDel)
+    strENDQ <- character(length = nDel)
+    strSampleTags <- character(length = nDel)
+    
+    if (nrow(dtNucChrDel) != 0) {
+      ### calculate vcf lines for insertions (aka a deletion in the reference)
+      for (indDel in 1:nDel) {
+        strALT[indDel] <- paste(dtNucChrDel[Pos_a1 == lsRleRef$values[indDel],
+                                            Allele_a2],
+                                collapse = "")
+        strGT <- 1
+        strFRMR[indDel] <- dtNucChrDel[Pos_a1 == lsRleRef$values[indDel],
+                                       head(Strand_a1, 1)]
+        strFRMQ[indDel] <- dtNucChrDel[Pos_a1 == lsRleRef$values[indDel],
+                                       head(Strand_a2, 1)]
+        strCHRQ[indDel] <- dtNucChrDel[Pos_a1 == lsRleRef$values[indDel],
+                                       head(Chrom_a2, 1)]
+        strSTARTQ[indDel] <- dtNucChrDel[Pos_a1 == lsRleRef$values[indDel],
+                                         head(Pos_a2, 1)]
+        strENDQ[indDel] <- dtNucChrDel[Pos_a1 == lsRleRef$values[indDel],
+                                       tail(Pos_a2, 1)]
+        ### this works for insertions in the forward alignments
+        ### and matches the output vcf file from pggb-vg;
+        ### the base added represents the 
+        ### base where the alignment is interrupted by the insertion
+        if (strFRMQ[indDel] == 1) {
+          strREF[indDel] <- lsVtFasta[[indC]][lsRleRef$values[indDel]]
+          strALT[indDel] <- paste0(strREF[indDel], strALT[indDel])
+          
+        ### this works for the insertions in the reverse alignments
+        ### (see "fixing indels from nucmer alignments.txt") 
+        ### and matches the output vcf file from pggb-vg;
+        ### if we look at the assembly from position 1 to position N > 1
+        ### the base added (strREF[indDel]) represents
+        ### the base where the alignment restarts
+        ### while looking at the reverse alignment
+        ### (from position N > 1 to position 1)
+        ### strREF[indDel] represents the
+        ### base where the alignment is interrupted by the insertion
+        } else if (strFRMQ[indDel] == -1) {
+          strREF[indDel] <- lsVtFasta[[indC]][lsRleRef$values[indDel]]
+          ### a bit of a mess to reverse a string of DNA: each base
+          ### must be an element of a vector
+          strRev <- paste0(rev(strsplit(strALT[indDel], "")[[1]]),
+                           collapse = "")
+          strALT[indDel] <- paste0(strREF[indDel], strRev)
+        }
+      }
+      strSampleTags <- paste(strGT,
+                           strFRMR,
+                           strFRMQ,
+                           strCHRQ,
+                           strSTARTQ,
+                           strENDQ,
+                           sep = ":")
+      ### the vcf of the insertions
+      dtVcfDel <- data.table(rep(indC, nDel),
+                             lsRleRef$values,
+                             rep(".", nDel),
+                             strREF,
+                             strALT,
+                             rep(60, nDel),
+                             rep(".", nDel),
+                             rep(".", nDel),
+                             rep("GT:FRMR:FRMQ:CHRQ:STARTQ:ENDQ", nDel),
+                             strSampleTags)
+      colnames(dtVcfDel) <- strColnamesVcf
+    } else {
+      dtVcfDel <- c()
+    }
+    
+    ### grouping deleted base-pairs into one single event,
+    ### and making the vcf entry
+    dtNucChrIns <- dtNucIndelsChr[Allele_a2 == "."]
+    lsRleAlt <- rle(dtNucChrIns[["Pos_a2"]])
+    nIns <- length(lsRleAlt$lengths)
+    strREF <- character(length = nIns)
+    strALT <- character(length = nIns)
+    strFRMR <- character(length = nIns)
+    strFRMQ <- character(length = nIns)
+    strCHRQ <- character(length = nIns)
+    strSampleTags <- character(length = nIns)
+    ### here we need to retrieve numPOS (the genomic position of the reference)
+    numPOS <- numeric(length = nIns)
+    
+    if (nrow(dtNucChrIns) != 0) {
+      ### calculate vcf lines for deletions (aka insertions on the reference)
+      for (indIns in 1:nIns) {
+        strREF[indIns] <- paste(dtNucChrIns[Pos_a2 == lsRleAlt$values[indIns],
+                                            Allele_a1],
+                                collapse = "")
+        strGT <- 1
+        strFRMR[indIns] <- dtNucChrIns[Pos_a2 == lsRleAlt$values[indIns],
+                                       head(Strand_a1, 1)]
+        strFRMQ[indIns] <- dtNucChrIns[Pos_a2 == lsRleAlt$values[indIns],
+                                       head(Strand_a2, 1)]
+        strCHRQ[indIns] <- dtNucChrIns[Pos_a2 == lsRleAlt$values[indIns],
+                                       head(Chrom_a2, 1)]
+        ### finally numPOS, only for deletions
+        numPOS[indIns] <- dtNucChrIns[Pos_a2 == lsRleAlt$values[indIns],
+                                      head(Pos_a1, 1)]
+        ### the position (in the reference) of
+        ### the next base aligned (with respect to the deletion)
+        ### provides the ALT allele
+        posLastAligned <- numPOS[indIns] + nchar(strREF[indIns])
+        strALT[indIns] <- lsVtFasta[[indC]][posLastAligned]
+        
+        ### correction of the REF allele for forward/reverse alignments:
+        ### here strALT[indIns] represents the base where the alignment
+        ### restarts (forward alignments) or the base where the alignment 
+        ### is interrupted by the deletion (reverse alignment)
+        strREF[indIns] <- paste0(strREF[indIns], strALT[indIns])
+      }
+      strSampleTags <- paste(strGT,
+                           strFRMR,
+                           strFRMQ,
+                           strCHRQ,
+                           lsRleAlt$values,
+                           lsRleAlt$values,
+                           sep = ":")
+      ### the vcf of the deletions (the code of insertions is different 
+      ### because here we have to retrieve the REF coordinate)
+      dtVcfIns <- data.table(rep(indC, nIns),
+                             numPOS,
+                             rep(".", nIns),
+                             strREF,
+                             strALT,
+                             rep(60, nIns),
+                             rep(".", nIns),
+                             rep(".", nIns),
+                             rep("GT:FRMR:FRMQ:CHRQ:STARTQ:ENDQ", nIns),
+                             strSampleTags)
+      colnames(dtVcfIns) <- strColnamesVcf
+    } else {
+      dtVcfIns <- c()
+    }
+    
+    ## merge, filter, sort and write to file ----------------------------------
+    dtVcfIndels <- rbind(dtVcfDel, dtVcfIns)
+    ### filter out any event larger than 50 bp
+    dtVcfIndels <- dtVcfIndels[nchar(Ref_allele) < 51 & nchar(Alt_allele) < 51]
+    ### sorting
+    dtVcfIndels <- dtVcfIndels[order(match(dtVcfIndels$Chrom_id, allChr),
+                                     dtVcfIndels$Pos_bp), ]
+    ### write to file
+    fwrite(x = dtVcfIndels, file = pathOut, append = T, quote = F,
+           sep = "\t", row.names = F, col.names = F)
+  }
+}
+
+## clean the fai files (otherwise phybwt2 crashes) ----------------------------
+
+allFais <- list.files(path = dirGenomes, pattern = "fai$", full.names = T)
+unlink(allFais)
+
+```
+
+Here, we make the multisample vcf file for SNPs and indels.
+
+```{bash makes the multisample file}
+## settings -------------------------------------------------------------------
+
+### threads
+pll_runs=8
+
+### base folder, the classic:
+### dir_full=$(cd $(dirname "${0}") && pwd)
+### dir_base=$(dirname "${dir_full}")
+### does not work for a markdown
+dir_base=$(dirname "${PWD}")
+
+### input and output folders
+dir_input="${dir_base}/var/small/nuc/os-vcf"
+dir_out="${dir_base}/var/small/nuc/ms-vcf"
+if [[ -d "${dir_out}" ]]; then 
+  rm -rf "${dir_out}"
+fi
+mkdir -p "${dir_out}"
+
+## clmnt ----------------------------------------------------------------------
+
+cd "${dir_input}"
+find . -name "*tbi" | xargs rm
+
+## SNPs -----------------------------------------------------------------------
+
+### compress with bgzip all the SNPs single-sample vcf files and index
+for vcf_file in $(find . -name "*snps.vcf" | sort); do
+  bgzip -c -f "${vcf_file}" > "${vcf_file}.gz"
+  tabix "${vcf_file}.gz"
+done
+
+### merge SNPs to one multisample vcf with bcftools keeping sample order
+### consistent between SNPs and indels files (with " | sort")
+all_files=( $(find . -name "*snps.vcf.gz" | sort) )
+bcftools merge --output-type z --threads "${pll_runs}" ${all_files[@]} \
+> "${dir_out}/multis-snps.vcf.gz"
+
+## indels ---------------------------------------------------------------------
+
+### compress with bgzip all the indels single-sample vcf files and index;
+### the sort command makes the list of samples IDs consistent between 
+### SNPs and indels files
+for vcf_file in $(find . -name "*indels.vcf"); do
+  bgzip -c -f "${vcf_file}" > "${vcf_file}.gz"
+  tabix "${vcf_file}.gz"
+done
+
+### merge indels to one multisample vcf with bcftools keeping sample order
+### consistent between SNPs and indels files (with " | sort")
+all_files=( $(find . -name "*indels.vcf.gz" | sort) )
+bcftools merge --output-type z --threads "${pll_runs}" ${all_files[@]} \
+> "${dir_out}/multis-indels.vcf.gz"
+
+cd "${dir_base}/mrk"
+
+```
+
+Now, we can check the missing genotypes and correct them.
+
+Warning: the alignment files (\*coord.txt) may contain reverse alignments for which "start \> end", e.g.: 2 765 \| 230934 230165 \| 764 770 \| 87.99 \| chrI chrI
+
+Obviously, they correspond to SNPs with the "reverse" tag: 74 C T 230857 2 74 1 0 1 -1 chrI chrI
+
+```{r searches for missing genotypes}
+## header ---------------------------------------------------------------------
+
+options(java.parameters="-Xmx16G")
+options(stringsAsFactors = F)
+rm(list = ls())
+library(data.table)
+library(here)
+library(scriptName)
+
+## settings -------------------------------------------------------------------
+
+### fixed settings
+dirBase <- dirname(here())
+### dev
+### dirBase <- "/Users/Lorenzo/prog/graphs/sgp-eva/run-2"
+dirOut <- file.path(dirBase, "var", "small", "nuc", "ms-vcf")
+dir.create(path = dirOut, showWarnings = F, recursive = T)
+dirIn <- file.path(dirBase, "var", "small", "nuc", "ms-vcf")
+dirAln <- file.path(dirBase, "aln", "wga")
+fileOutSnps <- "multis-snps-genfix.vcf"
+fileOutIndels <- "multis-indels-genfix.vcf"
+hdAlnCoords <- c("Start_a1", "End_a1", "Start_a2", "End_a2", "Len_a1", "Len_a2",
+                 "Perc_iden", "Chrom_a1", "Chrom_a2")
+### the reference sequence
+idRef <- "SGDref-0"
+
+## clmnt ----------------------------------------------------------------------
+
+### script name
+myName <- current_filename()
+
+## SNPs -----------------------------------------------------------------------
+
+### input SNP vcf file
+fileInSnps <- list.files(path = dirIn,
+                         pattern = "-snps.vcf.gz$", full.names = T)
+
+### make the header
+strBashHeader <- paste0("bgzip -b -c ", fileInSnps, " | grep ^# > ",
+                        file.path(dirOut, fileOutSnps))
+system(strBashHeader)
+
+### load the data
+dtInVcf <- fread(fileInSnps, sep = "\t", na.strings = "antani")
+colnames(dtInVcf)[1] <- "CHROM"
+
+### remove non-biallelic loci
+# indNonBiallelic <- grep(pattern = ",", x = dtInVcf$ALT)
+# nNonBiallelic <- length(indNonBiallelic)
+# cat("[", myName, "] ",
+#     "Found ", nNonBiallelic, " non-biallelic SNPs out of ",
+#     nrow(dtInVcf), ".\n", sep = "")
+# dtBiallelicVcf <- dtInVcf[!indNonBiallelic]
+# nColBiallelic <- ncol(dtBiallelicVcf)
+# sampNames <- colnames(dtBiallelicVcf)[10:nColBiallelic]
+
+nColBiallelic <- ncol(dtInVcf)
+sampNames <- colnames(dtInVcf)[10:nColBiallelic]
+
+### count FORMAT tags and set the new string
+nTags <- length(unlist(strsplit(dtInVcf$FORMAT[1], split = ":")))
+newTag <- paste(c("0", rep(".", c(nTags - 1))), collapse = ":")
+
+for (indS in sampNames) {
+  ### indexes of column indS to be checked for the REF allele
+  indC <- grep(pattern = "^\\.", x = dtInVcf[[indS]])
+  cat("[", myName, "] ",
+      "There are ", length(indC), " alleles to be checked for sample ", indS,
+      ".\n", sep = "")
+  ### reading the alignment
+  strAln <- paste0(idRef, "-vs-", indS, "-coords.txt")
+  fileAln <- list.files(dirAln, pattern = strAln, full.names = T)
+  if (!file.exists(fileAln)) {
+    cat("[", myName, "] ",
+        "File ", fileAln, "does not exist, check the IDs of the genomes!",
+        "\n", sep = "")
+    stop()
+  }
+  dtAln <- fread(fileAln, sep = "\t", na.strings = "antani")
+  colnames(dtAln) <- hdAlnCoords
+
+  ### subset vcf and format loci for the comparison
+  dtLoci <- data.table(Chr_ref = dtInVcf$CHROM[indC],
+                       Start_ref = dtInVcf$POS[indC],
+                       End_ref = dtInVcf$POS[indC],
+                       Allele_ref = dtInVcf$REF[indC])
+  setkey(dtLoci, Chr_ref, Start_ref, End_ref)
+  ### format alignment for the comparison
+  setkey(dtAln, Chrom_a1, Start_a1, End_a1)
+
+  ### make the comparison using keys from the vcf file
+  dtOverlap <- foverlaps(dtLoci, dtAln, nomatch = NA, mult = "all",
+                          by.x = c("Chr_ref", "Start_ref", "End_ref"))
+  ### reduce the overlap table removing loci that overlap multiple alignments
+  boDup <- duplicated(dtOverlap, by = c("Chr_ref", "Start_ref", "End_ref"))
+  dtOverlapReduced <- dtOverlap[!boDup, ]
+  ### indexes of SNPs with multiple alignments in the reduced table
+  dtMultiAln <- dtOverlap[boDup, ]
+  strOverlapReduced <- paste(dtOverlapReduced$Chr_ref,
+                             dtOverlapReduced$Start_ref,
+                             sep = "_")
+  strMultiAln <- paste(dtMultiAln$Chr_ref,
+                       dtMultiAln$Start_ref,
+                       sep = "_")
+  indMultiAln <- match(strMultiAln, strOverlapReduced)
+  ### boolean of SNPs within one or more alignments (TRUE)
+  boAln <- !is.na(dtOverlapReduced$Perc_iden)
+  ### boolean of SNPs within only one alignment (TRUE)
+  boAln[indMultiAln] <- F
+
+  ### update the GT tag
+  nCol <- which(colnames(dtInVcf) == indS)
+  dtInVcf[indC[boAln], nCol] <- newTag
+}
+
+### save with append since we have already written the header
+fwrite(x = dtInVcf, file = file.path(dirOut, fileOutSnps), append = T,
+       quote = F, sep = "\t", row.names = F, col.names = F)
+
+## indels ---------------------------------------------------------------------
+
+### input indel vcf file
+fileInIndels <- list.files(path = dirIn,
+                         pattern = "-indels.vcf.gz$", full.names = T)
+
+### make the header
+strBashHeader <- paste0("bgzip -b -c ", fileInIndels, " | grep ^# > ",
+                        file.path(dirOut, fileOutIndels))
+system(strBashHeader)
+
+### load the data
+dtInVcf <- fread(fileInIndels, na.strings = "antani")
+colnames(dtInVcf)[1] <- "CHROM"
+
+### remove non-biallelic loci
+# indNonBiallelic <- grep(pattern = ",", x = dtInVcf$ALT)
+# nNonBiallelic <- length(indNonBiallelic)
+# cat("[", myName, "] ",
+#     "Found ", nNonBiallelic, " non-biallelic indels out of ",
+#     nrow(dtInVcf), ".\n", sep = "")
+# dtBiallelicVcf <- dtInVcf[!indNonBiallelic]
+# nColBiallelic <- ncol(dtBiallelicVcf)
+# sampNames <- colnames(dtBiallelicVcf)[10:nColBiallelic]
+
+nColBiallelic <- ncol(dtInVcf)
+sampNames <- colnames(dtInVcf)[10:nColBiallelic]
+
+### count FORMAT tags and set the new string
+nTags <- length(unlist(strsplit(dtInVcf$FORMAT[1], split = ":")))
+newTag <- paste(c("0", rep(".", c(nTags - 1))), collapse = ":")
+
+for (indS in sampNames) {
+  ### indexes of column indS to be checked for the REF allele
+  indC <- grep(pattern = "^\\.", x = dtInVcf[[indS]])
+  cat("[", myName, "] ",
+      "There are ", length(indC), " alleles to be checked for sample ", indS,
+      ".\n", sep = "")
+  ### reading the alignment
+  strAln <- paste0("SGDref-0", "-vs-", indS, "-coords.txt")
+  fileAln <- list.files(dirAln, pattern = strAln, full.names = T)
+  if (!file.exists(fileAln)) {
+    cat("[", myName, "] ",
+        "File ", fileAln, "does not exist, check the IDs of the genomes!",
+        "\n", sep = "")
+    stop()
+  }
+  dtAln <- fread(fileAln, sep = "\t", na.strings = "antani")
+  colnames(dtAln) <- hdAlnCoords
+
+  ### subset vcf and format loci for the comparison
+  dtLoci <- data.table(Chr_ref = dtInVcf$CHROM[indC],
+                       Start_ref = dtInVcf$POS[indC],
+                       End_ref = dtInVcf$POS[indC],
+                       Allele_ref = dtInVcf$REF[indC])
+  setkey(dtLoci, Chr_ref, Start_ref, End_ref)
+  ### format alignment for the comparison
+  setkey(dtAln, Chrom_a1, Start_a1, End_a1)
+
+  ### make the comparison using keys from the vcf file
+  dtOverlap <- foverlaps(dtLoci, dtAln, nomatch = NA, mult = "all",
+                          by.x = c("Chr_ref", "Start_ref", "End_ref"))
+  ### reduce the overlap table removing loci that overlap multiple alignments
+  boDup <- duplicated(dtOverlap, by = c("Chr_ref", "Start_ref", "End_ref"))
+  dtOverlapReduced <- dtOverlap[!boDup, ]
+  ### indexes of indels with multiple alignments in the reduced table
+  dtMultiAln <- dtOverlap[boDup, ]
+  strOverlapReduced <- paste(dtOverlapReduced$Chr_ref,
+                             dtOverlapReduced$Start_ref,
+                             sep = "_")
+  strMultiAln <- paste(dtMultiAln$Chr_ref,
+                       dtMultiAln$Start_ref,
+                       sep = "_")
+  indMultiAln <- match(strMultiAln, strOverlapReduced)
+  ### boolean of indels within one or more alignments (TRUE)
+  boAln <- !is.na(dtOverlapReduced$Perc_iden)
+  ### boolean of indels within only one alignment (TRUE)
+  boAln[indMultiAln] <- F
+
+  ### update the GT tag
+  nCol <- which(colnames(dtInVcf) == indS)
+  dtInVcf[indC[boAln], nCol] <- newTag
+}
+
+### save with append since we have already written the header
+fwrite(x = dtInVcf, file = file.path(dirOut, fileOutIndels), append = T,
+       quote = F, sep = "\t", row.names = F, col.names = F)
+
+### cleaning
+unlink(fileInSnps)
+unlink(fileInIndels)
+
+```
+
+Now we can concatenate the SNPs and the indels since we will need them combined to build a tree.
+
+```{bash concatenates nucmer SNPs and indels vcf files}
+## settings -------------------------------------------------------------------
+
+### base folder, the classic:
+### dir_full=$(cd $(dirname "${0}") && pwd)
+### dir_base=$(dirname "${dir_full}")
+### does not work for a markdown
+dir_base=$(dirname "${PWD}")
+
+## clmnt ----------------------------------------------------------------------
+
+### working folder
+dir_vcf="${dir_base}/var/small/nuc/ms-vcf"
+
+### input and output
+file_snps="${dir_vcf}/multis-snps-genfix.vcf"
+file_indels="${dir_vcf}/multis-indels-genfix.vcf"
+file_out="${dir_vcf}/multis-smallv-genfix.vcf"
+
+### compress and index
+bgzip -c -f "${file_snps}" > "${file_snps}.gz"
+tabix "${file_snps}.gz"
+bgzip -c -f "${file_indels}" > "${file_indels}.gz"
+tabix "${file_indels}.gz"
+
+### concatenate (that sorts automatically the entries and checks for sample name
+### consistency among input files)
+bcftools concat --output-type v --allow-overlaps \
+"${file_snps}.gz" "${file_indels}.gz" > "${file_out}"
+
+### cleaning
+rm -f "${file_snps}.gz" "${file_indels}.gz" \
+"${file_snps}.gz.tbi" "${file_indels}.gz.tbi"
+
+```
+
+We can now build the tree from nucmer alignments with iqtree.
+
+```{bash makes the nucmer SNPs tree with iqtree}
+## settings -------------------------------------------------------------------
+
+### base folder, the classic:
+### dir_full=$(cd $(dirname "${0}") && pwd)
+### dir_base=$(dirname "${dir_full}")
+### does not work for a markdown
+dir_base=$(dirname "${PWD}")
+### suppress long messages from background processes
+set +m
+### reference
+id_ref=('SGDref-0')
+### the outgroup
+id_ogroup="NCYC3947-0"
+### parallel threads
+pll_threads=44
+
+## clmnt ----------------------------------------------------------------------
+
+### clean and make the output folders
+dir_phy_nuc="${dir_base}/phy/iqt/nuc"
+if [[ -d "${dir_phy_nuc}" ]]; then 
+  rm -rf "${dir_phy_nuc}"
+fi
+mkdir -p "${dir_phy_nuc}"
+
+### input data
+dir_in="${dir_base}/var/small/nuc/ms-vcf"
+vcf_nuc=$(find "${dir_in}" -name "multis-snps-genfix.vcf")
+
+### move into output/working folder
+cd "${dir_phy_nuc}"
+
+### the outgroup is the first column of the phy file
+python3 "${dir_base}/scr/vcf2phylip.py" \
+-i "${vcf_nuc}" --outgroup "${id_ogroup}"
+
+### iqtree uses by default the first column sample as outgroup
+phy_file=$(ls *phy)
+phy_name=$(echo "${phy_file}" | cut -d "." -f 1)
+### the -bb option must be set at minimum 1000
+iqtree -s "${phy_file}" -nt "${pll_threads}" -bb 1000 -alrt 1000 -bnni
+
+```
+
+We now copy the variation graph in odgi format, its distance measures calculated by `odgi similarity`, and its variants.
+
+```{bash copies the graph and the distance data}
+## settings -------------------------------------------------------------------
+
+### base folder, the classic:
+### dir_full=$(cd $(dirname "${0}") && pwd)
+### dir_base=$(dirname "${dir_full}")
+### does not work for a markdown
+dir_base=$(dirname "${PWD}")
+
+### the name of the server as reported in .ssh/config
+server_name="hulk"
+### source folders
+dir_server_base="prog/graphs/scspsj"
+run_pggb="run-5"
+dir_in="${dir_server_base}/${run_pggb}"
+
+## clmnt ----------------------------------------------------------------------
+
+### clean and make the output folder
+dir_var_vg="${dir_base}/var/all/pvg"
+if [[ -d "${dir_var_vg}" ]]; then 
+  rm -rf "${dir_var_vg}"
+fi
+mkdir -p "${dir_var_vg}"
+
+### the folder for pggb's graph
+dir_gra="${dir_base}/gra-dss"
+if [[ -d "${dir_gra}" ]]; then 
+  rm -rf "${dir_gra}"
+fi
+mkdir -p "${dir_gra}"
+
+## copy -----------------------------------------------------------------------
+
+### the graph dissimilarity data (sample-based)
+scp "${server_name}":"${dir_in}/dss/smp-dss-*.txt" "${dir_gra}"
+
+### the vcf
+scp "${server_name}":"${dir_in}/var/calls/bin-*.vcf" "${dir_var_vg}"
+
+```
+
+Now we have to format the vcf file from pggb-vg. Each phased sample must be transformed in two non-phased samples. The IDs must be changed accordingly, as well as the IDs of the other samples (e.g. AAB must e converted in AAB-0).
+
+Then we need to classify and split the variants. We select SNPs in R since `bcftools view` selects the loci bearing at least one SNPs (but also anything else). We also need R to select indels. In fact, `bcftools view` does not apply any filtering on the indel size (and the command to do this is not documented), thus selecting also indels larger than 50 bp (these events are defined as SVs). Moreover, it is better to include in this step also the MNPs since they may be present in nucmer small variants (though reported as SNPs).
+
+Small insertions, small deletions, MNPs, and SVs may have also other complex variants. Some examples are reported in the folder "Complex variants from pggb" (on ozone).
+
+This step consumes quite a lot of RAM.
+
+```{r formats pggb-vg vcf file and extracts SNPs and indels}
+## header ---------------------------------------------------------------------
+
+options(java.parameters="-Xmx16G")
+options(stringsAsFactors = F)
+rm(list = ls())
+library(data.table)
+library(here)
+library(scriptName)
+library(stringr)
+
+## settings -------------------------------------------------------------------
+
+### fixed settings
+dirBase <- dirname(here())
+### dev 
+### dirBase <- "/home/lore/prog/graphs/sgp-eva/run-2"
+### dirBase <- "/Users/Lorenzo/prog/graphs/sgp-eva/run-2"
+### dirBase <- "/home/ltattini/prog/graphs/sgp-eva/run-15"
+dirWork <- file.path(dirBase, "var", "all", "pvg")
+
+### the reference sequence
+idRef <- "SGDref-0"
+
+### output files and folders for formatted data
+outName <- paste0("bin-", idRef, "-frm.vcf")
+### this file needs the header to be created (in the allFiles loop)
+outFrmFile <- file.path(dirWork, outName)
+unlink(outFrmFile)
+
+### the folder for SNPs, MNPs, small deletions, small insertions
+dirSmall <- file.path(dirBase, "var", "small", "pvg")
+unlink(dirSmall, recursive = T)
+dir.create(dirSmall)
+
+### the folder for mixed variants (for the file with no pure SNPs)
+dirAll <- file.path(dirBase, "var", "all", "pvg")
+
+### the folder for SVs
+dirStru <- file.path(dirBase, "var", "sv", "pvg")
+unlink(dirStru, recursive = T)
+dir.create(dirStru, recursive = T)
+
+### output files that need the header to be created (in the allFiles loop)
+outSnps <- file.path(dirSmall, "multis-snps-sampfix.vcf")
+unlink(outSnps)
+outMnpsTmp <- file.path(dirSmall, "multis-mnps-sampfix-unrld.vcf")
+unlink(outMnpsTmp)
+outDelTmp <- file.path(dirSmall, "multis-del-sampfix-unrld.vcf")
+unlink(outDelTmp)
+outInsUnrld <- file.path(dirSmall, "multis-ins-sampfix-unrld.vcf")
+unlink(outInsUnrld)
+outStruUnrld <- file.path(dirStru, "multis-svcv-sampfix-unrld.vcf")
+unlink(outStruUnrld)
+### this one goes in a different folder 
+### since it contains different types of variants
+outNoPureSnps <- file.path(dirAll, "multis-nopuresnps-sampfix.vcf")
+unlink(outNoPureSnps)
+
+### output files that will be produced by bcftools (no header needed)
+outMnps <- file.path(dirSmall, "multis-mnps-sampfix.vcf")
+unlink(outMnps)
+outDel <- file.path(dirSmall, "multis-del-sampfix.vcf")
+unlink(outDel)
+outIns <- file.path(dirSmall, "multis-ins-sampfix.vcf")
+unlink(outIns)
+outStru <- file.path(dirStru, "multis-svcv-sampfix.vcf")
+unlink(outStru)
+
+## clmnt ----------------------------------------------------------------------
+
+### script name
+myName <- current_filename()
+
+## find the vcf and make headers ----------------------------------------------
+
+inName <- paste0("bin-", idRef, ".vcf$")
+inFile <- list.files(path = dirWork, pattern = inName, full.names = T)
+
+### make the header in a temporary file
+pathTmp <- file.path(dirname(outSnps), "tmp-hd.txt")
+strBashHeader <- paste0("grep ^## ", inFile, " > ", pathTmp)
+system(strBashHeader)
+
+### copy the header temporary file to output files and output temporary files
+allFiles <- c(outFrmFile, outSnps, outNoPureSnps, outMnpsTmp, outDelTmp,
+              outInsUnrld, outStruUnrld)
+for (indF in allFiles) {
+  file.copy(pathTmp, indF, overwrite = T)
+}
+unlink(pathTmp)
+
+## read the vcf ---------------------------------------------------------------
+
+dtVcf <- fread(file = inFile, sep = "\t", na.strings = "antani")
+# colnames(dtVcf)[1] <- "CHROM"
+
+## find the phased samples ----------------------------------------------------
+
+### criterion: they have at least one "|" in the GT subfield
+### which is the only subfield reported
+dtHits <- dtVcf[, lapply(.SD, function(x) length(grep("\\|", unique(x)))),
+                .SDcols = c(10:ncol(dtVcf))]
+### the equivalent loop (but it gives a vector without names)
+# nHits <- numeric(length = ncol(dtVcf) - 9)
+# flagC <- 1
+# sampleNames <- colnames(dtVcf)[10:ncol(dtVcf)]
+# for (indC in sampleNames) {
+#   nHits[flagC] <- length(grep("\\|", unique(dtVcf[, get(indC)])))
+#   flagC <- flagC + 1
+# }
+
+### find names of columns with hits > 0 (i.e. the names of the phased samples)
+namesP <- colnames(dtHits)[which(dtHits[1, ] > 0)]
+### correct "." to ".|." for all the phased samples
+dtVcf[, (namesP) := replace(.SD, .SD == ".", ".|."), .SDcols = namesP]
+
+### split the columns of the phased samples
+for (indP in namesP) {
+  dtVcf[, paste0(indP, c("-1","-2")) := tstrsplit(get(indP),
+                                                       split = "\\|")]
+}
+
+## formatting and writing output ----------------------------------------------
+
+### remove the merged phased samples e.g. ACA, since we have ACA-1 and ACA-2
+dtVcf[, (namesP) := NULL]
+### change the names of the non-phased samples, e.g. from BAB to BAB-0
+nameN <- grep(pattern = "-[[:digit:]]",
+              colnames(dtVcf)[c(10:ncol(dtVcf))],
+              invert = T,
+              value = T)
+setnames(dtVcf, nameN, paste0(nameN, '-0'))
+
+### append the output to outFrmFile (all variants)
+fwrite(dtVcf, file = outFrmFile, append = T, col.names = T, sep = "\t")
+
+## append the output to outSnps (SNPs only) -----------------------------------
+
+### since bcftools extracts the loci with at least on SNP we extract
+### here the loci containing SNPs only
+# nCommas <- str_count(dtVcf$ALT, ",")
+nCommas <- str_count(dtVcf[["ALT"]], ",")
+nAltChar <- str_count(dtVcf[["ALT"]], "[[:upper:]]")
+nRefChar <- nchar(dtVcf[["REF"]])
+
+### diffCharAlt is 1 for SNPs
+diffCharAlt <- nAltChar - nCommas
+
+### find loci with only SNPs (purely SNPs loci, aka loci bearing strictly
+### only SNPs, no indels or any other type of variant)
+indSnps <- which(nRefChar == 1
+                 & diffCharAlt == 1)
+
+### save loci that do NOT bear ONLY SNPs (for the next step)
+indNoSnps <- setdiff(seq(1:nrow(dtVcf)), indSnps)
+fwrite(dtVcf[indNoSnps], file = outNoPureSnps ,append = T, quote = F,
+       sep = "\t", row.names = F, col.names = T)
+
+fwrite(dtVcf[indSnps], file = outSnps, append = T, col.names = T, sep = "\t")
+
+## the other variants ---------------------------------------------------------
+
+### convert the multiallelic variants to multiple lines
+### (this is two times faster if the temporary file is not compressed)
+pathTmpUnrolled <- file.path(dirname(outNoPureSnps), "tmp-unrolled.vcf")
+strBashUnroll <- paste0("bcftools norm --threads 4 --multiallelics - ",
+                        outNoPureSnps, " -O v > ", pathTmpUnrolled)
+system(strBashUnroll)
+
+### the unrolled vcf we need to classify variants (other than pure SNPs)
+dtUnrolled <- fread(input = pathTmpUnrolled, header = T, sep = "\t",
+                    na.strings = "antani")
+### cleaning
+unlink(pathTmpUnrolled)
+
+## the SVs and other complex variants (CVs) -----------------------------------
+
+### indexes of SVs and CVs
+indStru <- which(nchar(dtUnrolled[["REF"]]) > 50
+                 | nchar(dtUnrolled[["ALT"]]) > 50)
+
+### save the unrolled SVs and CVs
+fwrite(dtUnrolled[indStru], file = outStruUnrld, append = T, col.names = T,
+       sep = "\t")
+
+### join unrolled biallelic sites into multiallelic records,
+### merging SVs and other complex variants
+### (e.g. nested SNPs and indels that cannot be untangled
+### or large highly polymorphic loci, like those reported in 
+### "Complex variants from pggb" on ozone)
+strBashRoll <- paste0("bcftools norm --threads 4 --multiallelics +any ",
+                      outStruUnrld, " -O v > ", outStru)
+system(strBashRoll)
+
+## the other small variants (no pure SNPs locus nor SVs/CVs) ----------------
+
+### filter out SVs and the other complex variants
+indNoStru <- setdiff(seq(1:nrow(dtUnrolled)), indStru)
+dtUnrolledSmall <- dtUnrolled[indNoStru]
+### cleaning
+rm(dtUnrolled)
+
+### MNPs
+nRef <- nchar(dtUnrolledSmall[["REF"]])
+nAlt <- nchar(dtUnrolledSmall[["ALT"]])
+indMultinuc <- which(nRef == nAlt)
+fwrite(dtUnrolledSmall[indMultinuc], file = outMnpsTmp, append = T,
+       col.names = T, sep = "\t")
+### join unrolled biallelic sites into multiallelic records
+strBashRoll <- paste0("bcftools norm --threads 4 --multiallelics +any ",
+                      outMnpsTmp, " -O v > ", outMnps)
+system(strBashRoll)
+
+### small deletions (including "delinsertions"
+### as shown in "Complex variants from pggb" on ozone)
+indDel <- which(nRef > nAlt)
+fwrite(dtUnrolledSmall[indDel], file = outDelTmp, append = T,
+       col.names = T, sep = "\t")
+### join unrolled biallelic sites into multiallelic records
+strBashRoll <- paste0("bcftools norm --threads 4 --multiallelics +any ",
+                      outDelTmp, " -O v > ", outDel)
+system(strBashRoll)
+
+### small insertions
+indIns <- which(nRef < nAlt)
+fwrite(dtUnrolledSmall[indIns], file = outInsUnrld, append = T,
+       col.names = T, sep = "\t")
+### join unrolled biallelic sites into multiallelic records
+strBashRoll <- paste0("bcftools norm --threads 4 --multiallelics +any ",
+                      outInsUnrld, " -O v > ", outIns)
+system(strBashRoll)
+
+### check the numbers
+allSelectInd <- c(indMultinuc, indDel, indIns)
+
+setDiff <- setdiff(seq(1:nrow(dtUnrolledSmall)), allSelectInd)
+if (length(setDiff) != 0) {
+  strWarnSetDiff <- paste0("[", myName,
+                           "] Some (other) small",
+                           "variants could not be classified\n")
+  warning(strWarnSetDiff)
+}
+
+```
+
+Now we can merge the SNPs (strictly SNPs-only loci) and the other small variants from pggb-vg. Since nucmer produces 10427 consecutive loci (with the phhd dataset) that should be classified as MNPs rather than SNPs, we combine pggb-vg SNPs with the MNPs. For small variants also deletions and insertions are used. Only in the latter case we have to join the records with the same genomic coordinate.
+
+```{bash combines pggb-vg SNPs and the other small variants}
+
+### base folder, the classic:
+### dir_full=$(cd $(dirname "${0}") && pwd)
+### dir_base=$(dirname "${dir_full}")
+### does not work for a markdown
+dir_base=$(dirname "${PWD}")
+### parallel runs
+pll_runs=22
+
+### suppress long messages from background processes
+set +m
+
+## clmnt ----------------------------------------------------------------------
+
+### working folder
+dir_var="${dir_base}/var/small/pvg"
+cd "${dir_var}"
+
+### compress
+for ind_f in $(find . -name "*sampfix.vcf"); do
+  bgzip -c -f --threads "${pll_runs}" "${ind_f}" > "${ind_f}.gz"
+  tabix "${ind_f}.gz"
+done
+
+### merge to multiple/single-nucleotide polymorphisms: this output file
+### does not need bcftools norm to join records with the same coordinate
+### (they cannot exist since SNPs are strictly pure SNPs loci)
+bcftools concat --allow-overlaps -O v \
+"multis-snps-sampfix.vcf.gz" \
+"multis-mnps-sampfix.vcf.gz" \
+> "multis-msnps-sampfix.vcf"
+
+### merge to small variants: here bcftools norm is needed
+### to join records with the same coordinate 
+bcftools concat --allow-overlaps -O v \
+"multis-snps-sampfix.vcf.gz" \
+"multis-mnps-sampfix.vcf.gz" \
+"multis-del-sampfix.vcf.gz" \
+"multis-ins-sampfix.vcf.gz" | \
+bcftools norm --threads "${pll_runs}" --multiallelics +any \
+> "multis-smallv-sampfix.vcf"
+
+### merge to indels: here bcftools norm is needed
+### to join records with the same coordinate 
+bcftools concat --allow-overlaps -O v \
+"multis-del-sampfix.vcf.gz" \
+"multis-ins-sampfix.vcf.gz" | \
+bcftools norm --threads "${pll_runs}" --multiallelics +any \
+> "multis-indels-sampfix.vcf"
+
+```
+
+Then we can build the MNPs/SNPs tree from pggb-vg using iqtree. This tree will tell how a sophisticated phylogenetic method compares to a raw tree construction method based on dissimilarity and clustering.
+
+```{bash makes the pggb-vg SNPs tree with iqtree}
+## settings -------------------------------------------------------------------
+
+### base folder, the classic:
+### dir_full=$(cd $(dirname "${0}") && pwd)
+### dir_base=$(dirname "${dir_full}")
+### does not work for a markdown
+dir_base=$(dirname "${PWD}")
+
+### suppress long messages from background processes
+set +m
+### reference
+id_ref=('SGDref-0')
+### the outgroup
+id_ogroup="NCYC3947-0"
+### parallel threads
+pll_threads=44
+
+## clmnt ----------------------------------------------------------------------
+
+### clean and make the output folders
+dir_phy_psnp="${dir_base}/phy/iqt/pvg-msnps"
+if [[ -d "${dir_phy_psnp}" ]]; then 
+  rm -rf "${dir_phy_psnp}"
+fi
+mkdir -p "${dir_phy_psnp}"
+
+### input data
+dir_in="${dir_base}/var/small/pvg"
+vcf_msnps=$(find "${dir_in}" -name "multis-msnps-sampfix.vcf")
+
+### move into output/working folder
+cd "${dir_phy_psnp}"
+
+### the outgroup is the first column of the phy file
+python3 "${dir_base}/scr/vcf2phylip.py" \
+-i "${vcf_msnps}" --outgroup "${id_ogroup}"
+
+### iqtree uses by default the first column sample as outgroup
+phy_file=$(ls *phy)
+phy_name=$(echo "${phy_file}" | cut -d "." -f 1)
+### the -bb option must be set at minimum 1000
+iqtree -s "${phy_file}" -nt "${pll_threads}" -bb 1000 -alrt 1000 -bnni
+
+```
+
+Now we can use the SNPs, the indels, and the small variants vcf files from nucmer and pggb-vg to calculate the cosine distance and compare the corresponding trees. Remarkably, `vcf2dist` calculates directly the distances and its output needs no conversion (same as the latest versions of `odgi similarity`).
+
+```{r calculates the cosine distances from nucmer and pggb-vg}
+## header ---------------------------------------------------------------------
+
+options(java.parameters="-Xmx16G")
+options(stringsAsFactors = F)
+rm(list = ls())
+library(scriptName)
+library(here)
+library(fastreeR)
+
+## settings -------------------------------------------------------------------
+
+### fixed settings
+dirBase <- dirname(here())
+### dev
+### dirBase <- "/home/lore/prog/graphs/sgp-eva/run-2"
+### dirBase <- "/Users/Lorenzo/prog/graphs/sgp-eva/run-2"
+
+### parallel threads
+pllThreads=22
+
+### nucmer input folder
+dirVcfNuc <- file.path(dirBase, "var", "small", "nuc", "ms-vcf")
+### nucmer vcf files
+pathNucSnps <- list.files(dirVcfNuc, pattern = "multis-snps-genfix.vcf$",
+                          full.names = T)
+pathNucIndels <- list.files(dirVcfNuc, pattern = "multis-indels-genfix.vcf$",
+                            full.names = T)
+pathNucSmallv <- list.files(dirVcfNuc, pattern = "multis-smallv-genfix.vcf$",
+                            full.names = T)
+
+### pggb-vg input folder
+dirVcfPvg <- file.path(dirBase, "var", "small", "pvg")
+### pggb-vg vcf files
+pathPvgSnps <- list.files(dirVcfPvg, pattern = "multis-msnps-sampfix.vcf$",
+                          full.names = T)
+pathPvgIndels <- list.files(dirVcfPvg, pattern = "multis-indels-sampfix.vcf$",
+                            full.names = T)
+pathPvgSmallv <- list.files(dirVcfPvg, pattern = "multis-smallv-sampfix.vcf$",
+                            full.names = T)
+
+### output distance matrices folder
+dirMtDst <- file.path(dirBase, "dst")
+unlink(dirMtDst, recursive = T)
+dir.create(dirMtDst, showWarnings = F)
+
+### output files
+pathNucSnpsOut <- file.path(dirMtDst, "dst-nuc-snps.txt")
+pathNucIndelsOut <- file.path(dirMtDst, "dst-nuc-indels.txt")
+pathNucSmallvOut <- file.path(dirMtDst, "dst-nuc-smallv.txt")
+pathPvgSnpsOut <- file.path(dirMtDst, "dst-pvg-msnps.txt")
+pathPvgIndelsOut <- file.path(dirMtDst, "dst-pvg-indels.txt")
+pathPvgSmallvOut <- file.path(dirMtDst, "dst-pvg-smallv.txt")
+
+## clmnt ----------------------------------------------------------------------
+
+### script name
+myName <- current_filename()
+
+## MNPs/SNPs data -------------------------------------------------------------
+
+### convert nucmer vcf file to a distance matrix
+cat(pathNucSnps, "\n")
+vcf2dist(pathNucSnps, outputFile = pathNucSnpsOut,
+         threads = pllThreads, ignoreMissing = F, 
+         onlyHets = F, ignoreHets = F, compress = F)
+### convert pggb-vg vcf file to a distance matrix
+cat(pathPvgSnps, "\n")
+vcf2dist(pathPvgSnps, outputFile = pathPvgSnpsOut,
+         threads = pllThreads, ignoreMissing = F, 
+         onlyHets = F, ignoreHets = F, compress = F)
+
+## indels data ----------------------------------------------------------------
+
+### nucmer
+cat(pathNucIndels, "\n")
+vcf2dist(pathNucIndels, outputFile = pathNucIndelsOut,
+         threads = pllThreads, ignoreMissing = F, 
+         onlyHets = F, ignoreHets = F, compress = F)
+### pggb-vg
+cat(pathPvgIndels, "\n")
+vcf2dist(pathPvgIndels, outputFile = pathPvgIndelsOut,
+         threads = pllThreads, ignoreMissing = F, 
+         onlyHets = F, ignoreHets = F, compress = F)
+
+## small variants data --------------------------------------------------------
+
+### nucmer
+cat(pathNucSmallv, "\n")
+vcf2dist(pathNucSmallv, outputFile = pathNucSmallvOut,
+         threads = pllThreads, ignoreMissing = F, 
+         onlyHets = F, ignoreHets = F, compress = F)
+
+### pggb-vg
+cat(pathPvgSmallv, "\n")
+vcf2dist(pathPvgSmallv, outputFile = pathPvgSmallvOut,
+         threads = pllThreads, ignoreMissing = F,
+         onlyHets = F, ignoreHets = F, compress = F)
+
+```
+
+Pick this chunk or the next one!
+
+Finally, we can concentrate on the reference-free data produced by phybwt2 and distbwt2. This step consumes lots of memory (e.g. 71 GB for 104 yeast genomes) and may fail, if the memory is not enough, without prompting any memory related error (but just a "Error opening pb2run.fasta.da."). So, phybwt2 can be run with `phybwt2-rnr.sh` (which requires the `.../gen/ass` folder) on the same machine (with lots of memory) producing the graph and here we can copy the results locally.
+
+```{bash copies phybwt2 and distbwt2 data, eval = FALSE}
+## settings -------------------------------------------------------------------
+
+### base folder, the classic:
+### dir_full=$(cd $(dirname "${0}") && pwd)
+### dir_base=$(dirname "${dir_full}")
+### does not work for a markdown
+dir_base=$(dirname "${PWD}")
+
+### the name of the server as reported in .ssh/config
+server_name="hulk"
+### source folders
+dir_server_base="prog/phyb2"
+dir_server_run="${dir_server_base}/yg104-r2"
+
+## clmnt ----------------------------------------------------------------------
+
+## copy -----------------------------------------------------------------------
+
+### the tree
+dir_phy="${dir_base}/phy/pb2"
+if [[ ! -d "${dir_phy}" ]]; then
+  mkdir -p "${dir_phy}"
+fi
+
+path_server_phy_out="${dir_server_run}/phy/pb2/pb2-wref.tree"
+scp -r "${server_name}":"${path_server_phy_out}" \
+"${dir_phy}"
+
+### the distances
+dir_dst="${dir_base}/dst"
+if [[ ! -d "${dir_dst}" ]]; then
+  mkdir "${dir_dst}"
+fi
+
+path_server_dst_out="${dir_server_run}/dst/dst-db2-wref.txt"
+scp "${server_name}":"${path_server_dst_out}" \
+"${dir_dst}"
+
+```
+
+In case the whole markdown is being run on a machine with lots of internal memory, the following chunk can be used. It is equivalent to the `rnr-phybwt2.sh` script stored in the `scr` folder.
+
+```{bash runs phybwt2 and distbwt2}
+## settings -------------------------------------------------------------------
+
+### phybwt2 parameters:
+### tau_par is the threshold of tolerance, optimal at 0.6, while
+### k_min is the minimal length of the common substrings
+tau_par=0.6
+k_min=250
+vers_phybwt2="phybwt2-24.7.18"
+
+### base folder, the classic:
+### dir_full=$(cd $(dirname "${0}") && pwd)
+### dir_base=$(dirname "${dir_full}")
+### does not work for a markdown
+dir_base=$(dirname "${PWD}")
+
+### working folder (phybwt2 installation folder)
+dir_work="${HOME}/tools/phybwt2/${vers_phybwt2}"
+### input and output folders
+dir_input="${dir_base}/gen/ass"
+### clean fai files for phybwt2 (otherwise they are considered as sequences)
+if [[ -n "$(find "${dir_input}" -name "*fai" 2>/dev/null)" ]]; then
+  find "${dir_input}" -name "*fai" | xargs rm
+fi
+
+### in the markdown the dst output folder is created in the chunks above,
+### we just make this for the runner
+dir_dst_out="${dir_base}/dst"
+if [[ ! -d "${dir_dst_out}" ]]; then 
+  mkdir -p "${dir_dst_out}"
+fi
+
+dir_phy_out="${dir_base}/phy/pb2"
+if [[ -d "${dir_phy_out}" ]]; then 
+  rm -rf "${dir_phy_out}"
+fi
+mkdir -p "${dir_phy_out}"
+
+## clmnt ----------------------------------------------------------------------
+
+cd "${dir_work}"
+
+phybwt2-preproc "${dir_input}" "pb2run"
+phybwt2 "pb2run.fasta" "pb2run.txt" "pb2run.tree" "${k_min}" "${tau_par}"
+distbwt2 "pb2run.fasta" "pb2run.txt" "dst-db2-wref.txt" "${k_min}"
+
+### cleaning
+rm -f "TMP_BinaryVectors"* \
+"pb2run.txt" \
+"pb2run.fasta" \
+"pb2run.fasta.lcp" \
+"pb2run.fasta.da" \
+"pb2run.fasta.ebwt" \
+"pb2run.fasta.cda"
+
+### rename, format, and move the tree to output folders
+sed 's|-genome.fa||g' "pb2run.tree" > "pb2-wref.tree"
+rm -f "pb2run.tree"
+mv -f "pb2-wref.tree" "${dir_phy_out}"
+### rename, format, and move the distances to output folders
+sed 's|-genome.fa||g' "dst-db2-wref.txt" > "tmp.txt"
+n_strain=$(head -1 "tmp.txt" | sed 's|^\t||')
+echo "${n_strain} 12000000" > "dst-db2-wref.txt"
+sed -e '1,1d' "tmp.txt" | sed 's|\t| |g' | sed 's| $||g' >> "dst-db2-wref.txt"
+mv -f "dst-db2-wref.txt" "${dir_dst_out}"
+rm -f "tmp.txt"
+
+```
+
+Now we can start evaluating the distance matrices: `nucmer` vs `pggb-vg` and `distbwt2` vs `odgi similarity` (applied to `pggb` data). First, we rearrange the distance measure provided by `odgi similarity` into a distance matrix. Then, we calculate the difference of the distance values from `nucmer` and `pggb-vg`, and we plot their distribution. This chunk uses tidyverse. It's Andrea's fault. finally, we compare `distbwt2` against `pggb-odgi similarity` and `nucmer`.
+
+```{r compares the distance matrices}
+## header ---------------------------------------------------------------------
+
+options(scipen = 999)
+options(stringsAsFactors = F)
+rm(list = ls())
+library(tidyverse)
+library(scriptName)
+library(here)
+
+## settings -------------------------------------------------------------------
+
+### fixed settings
+dirBase <- dirname(here())
+### dev 
+### dirBase <- "/home/lore/prog/graphs/sgp-eva/run-2"
+### dirBase <- "/Users/Lorenzo/prog/graphs/sgp-eva/run-2"
+### dirBase <- "/home/ltattini/prog/graphs/sgp-eva/run-3"
+
+### the reference sample (not to be confused with the sequence)
+idRef <- "SGDref-0"
+
+### input folder of variant-based distances and 
+### output for pggb-odgi similarity and 
+### output for the distbwt2 distances 
+dirDist <- file.path(dirBase, "dst")
+
+### distbwt2 distances with reference
+pathDbtWref <- file.path(dirDist, "dst-db2-wref.txt")
+### distbwt2 distances without reference
+pathDbtNref <- file.path(dirDist, "dst-db2-nref.txt")
+
+### odgi dissimilarity file input and output
+dirPos <- file.path(dirBase, "gra-dss")
+pathPos  <- list.files(path = dirPos,
+                       pattern = "smp-.*txt$", full.names = T)
+pathPosNorefOut <- file.path(dirDist, "dst-pos-allvar-nref.txt")
+pathPosWithrefOut <- file.path(dirDist, "dst-pos-allvar-wref.txt")
+dir.create(dirDist, showWarnings = F)
+
+### output plots
+dirPlot <- file.path(dirBase, "dif-dst")
+dir.create(dirPlot, recursive = T, showWarnings = F)
+pathPlotIndels <- file.path(dirPlot, "indels-nuc-pvg.pdf")
+pathPlotSnps <- file.path(dirPlot, "msnps-nuc-pvg.pdf")
+pathPlotSmallv <- file.path(dirPlot, "smallv-nuc-pvg.pdf")
+pathPlotNucPos <- file.path(dirPlot, "nuc-odgi.pdf")
+pathPlotPvgPos <- file.path(dirPlot, "pvg-odgi.pdf")
+pathPlotDbtPos <- file.path(dirPlot, "db2-odgi.pdf")
+pathPlotDbtNucSmallv <- file.path(dirPlot, "db2-nuc.pdf")
+
+## clmnt ----------------------------------------------------------------------
+
+### script name
+myName <- current_filename()
+
+## convert odgi dissimilarity data to a distance matrix -----------------------
+
+### formatting
+dfCosDiss <- read_tsv(pathPos, show_col_types = F) %>%
+  arrange(group.a, group.b) %>%
+  ### the older versions of odgi similarity provided the similarity measure
+  ### instead of the dissimilarity, so it was necessary to perform the
+  ### transformation here
+  ### mutate(cosine.distance = 1 - cosine.distance) %>%
+  select(group.a, group.b, cosine.distance) %>%
+  pivot_wider(names_from = group.b, values_from = cosine.distance,
+              values_fill = 1) %>%
+  column_to_rownames(var = "group.a")
+
+### format columns and row names from odgi format (hash-separated)
+### to the internal format (hyphen-separated)
+strFrmRowNames <- gsub(pattern = "#", replacement = "-",
+                       x = rownames(dfCosDiss))
+strFrmColNames <- gsub(pattern = "#", replacement = "-",
+                       x = colnames(dfCosDiss))
+rownames(dfCosDiss) <- strFrmRowNames
+colnames(dfCosDiss) <- strFrmColNames
+### sort, just in case
+dfCosDiss <- dfCosDiss[order(rownames(dfCosDiss)), order(colnames(dfCosDiss))]
+
+### save the matrix with the reference data
+cat(nrow(dfCosDiss), " ", 12000000, "\n",
+    file = pathPosWithrefOut, sep = "")
+write.table(dfCosDiss, file = pathPosWithrefOut,
+            append = T, quote = F, sep = " ", row.names = T, col.names = F)
+### properly-named internal copy to be used later
+dfPosDistWref <- dfCosDiss
+
+### remove the reference
+indBon <- which(colnames(dfCosDiss) != idRef)
+dfPosDistNref <- dfCosDiss[indBon, indBon]
+rm(list = "dfCosDiss")
+
+### save the matrix without the reference data
+cat(nrow(dfPosDistNref), " ", 12000000, "\n",
+    file = pathPosNorefOut, sep = "")
+write.table(dfPosDistNref, file = pathPosNorefOut,
+            append = T, quote = F, sep = " ", row.names = T, col.names = F)
+
+## nucmer and pggb-vg (indels) ------------------------------------------------
+
+pathDistNucIndels <- file.path(dirDist, "dst-nuc-indels.txt")
+dfNucIndels <- read.table(pathDistNucIndels, header = F, sep = " ", skip = 1)
+rownames(dfNucIndels) <- dfNucIndels[, 1]
+dfNucIndels <- dfNucIndels[, 2:ncol(dfNucIndels)]
+### yes, the names of the rows are the same for the columns
+colnames(dfNucIndels) <- rownames(dfNucIndels)
+### sort, just in case
+dfNucIndels <- dfNucIndels[order(rownames(dfNucIndels)),
+                           order(colnames(dfNucIndels))]
+
+pathDistPvgIndels <- file.path(dirDist, "dst-pvg-indels.txt")
+dfPvgIndels <- read.table(pathDistPvgIndels, header = F, sep = " ", skip = 1)
+rownames(dfPvgIndels) <- dfPvgIndels[, 1]
+dfPvgIndels <- dfPvgIndels[, 2:ncol(dfPvgIndels)]
+### yes, the names of the rows are the same for the columns
+colnames(dfPvgIndels) <- rownames(dfPvgIndels)
+### sort, just in case
+dfPvgIndels <- dfPvgIndels[order(rownames(dfPvgIndels)),
+                           order(colnames(dfPvgIndels))]
+### debug
+# dfPvgIndels <- dfPvgIndels[c(1:6), c(1:6)]
+# colnames(dfPvgIndels) <- colnames(dfNucIndels)
+# rownames(dfPvgIndels) <- colnames(dfNucIndels)
+### difference matrix
+mtDifIndels <- as.matrix(dfNucIndels - dfPvgIndels)
+dfPlotIndels <- data.frame(matrix(mtDifIndels))
+colnames(dfPlotIndels)[1] <- "difference"
+
+### plot
+plotIndels <- ggplot(dfPlotIndels, aes(x = difference)) +
+  geom_histogram() +
+  theme_minimal() +
+  theme(text = element_text(size = 24)) +
+  labs(title = "indels", subtitle = "",
+         x = expression(d[nucmer]-d[pvg]),
+         y = "count",
+         size = 28)
+pdf(file = pathPlotIndels, width = 9, height = 9)
+print(plotIndels)
+dev.off()
+
+### x-axis fixed plot
+fileN <- sub(".pdf$", "-xfxd.pdf", basename(pathPlotIndels))
+pathPlotIndelsXfxd <- file.path(dirname(pathPlotIndels), fileN)
+plotIndels <- ggplot(dfPlotIndels, aes(x = difference)) +
+  geom_histogram() +
+  theme_minimal() +
+  coord_cartesian(xlim = c(-1, 1)) +
+  theme(text = element_text(size = 24)) +
+  labs(title = "indels", subtitle = "",
+         x = expression(d[nucmer]-d[pvg]),
+         y = "count",
+         size = 28)
+pdf(file = pathPlotIndelsXfxd, width = 9, height = 9)
+print(plotIndels)
+dev.off()
+
+## nucmer and pggb-vg (msnps) -------------------------------------------------
+
+pathDistNucSnps <- file.path(dirDist, "dst-nuc-snps.txt")
+dfNucSnps <- read.table(pathDistNucSnps, header = F, sep = " ", skip = 1)
+rownames(dfNucSnps) <- dfNucSnps[, 1]
+dfNucSnps <- dfNucSnps[, 2:ncol(dfNucSnps)]
+### yes, the names of the rows are the same for the columns
+colnames(dfNucSnps) <- rownames(dfNucSnps)
+### sort, just in case
+dfNucSnps <- dfNucSnps[order(rownames(dfNucSnps)),
+                       order(colnames(dfNucSnps))]
+
+pathDistPvgSnps <- file.path(dirDist, "dst-pvg-msnps.txt")
+dfPvgSnps <- read.table(pathDistPvgSnps, header = F, sep = " ", skip = 1)
+rownames(dfPvgSnps) <- dfPvgSnps[, 1]
+dfPvgSnps <- dfPvgSnps[, 2:ncol(dfPvgSnps)]
+### yes, the names of the rows are the same for the columns
+colnames(dfPvgSnps) <- rownames(dfPvgSnps)
+### sort, just in case
+dfPvgSnps <- dfPvgSnps[order(rownames(dfPvgSnps)),
+                       order(colnames(dfPvgSnps))]
+
+### difference matrix
+mtDifSnps <- as.matrix(dfNucSnps - dfPvgSnps)
+dfPlotSnps <- data.frame(matrix(mtDifSnps))
+colnames(dfPlotSnps)[1] <- "difference"
+
+### plot
+plotSnps <- ggplot(dfPlotSnps, aes(x = difference)) +
+  geom_histogram() +
+  theme_minimal() +
+  theme(text = element_text(size = 24)) +
+  labs(title = "MNPs and SNPs", subtitle = "",
+         x = expression(d[nucmer]-d[pvg]),
+         y = "count",
+         size = 28)
+pdf(file = pathPlotSnps, width = 9, height = 9)
+print(plotSnps)
+dev.off()
+
+### x-axis fixed plot
+fileN <- sub(".pdf$", "-xfxd.pdf", basename(pathPlotSnps))
+pathPlotSnpsXfxd <- file.path(dirname(pathPlotSnps), fileN)
+plotSnps <- ggplot(dfPlotSnps, aes(x = difference)) +
+  geom_histogram() +
+  theme_minimal() +
+  coord_cartesian(xlim = c(-1, 1)) +
+  theme(text = element_text(size = 24)) +
+  labs(title = "MNPs and SNPs", subtitle = "",
+         x = expression(d[nucmer]-d[pvg]),
+         y = "count",
+         size = 28)
+pdf(file = pathPlotSnpsXfxd, width = 9, height = 9)
+print(plotSnps)
+dev.off()
+
+## nucmer and pggb-vg (small variants) ----------------------------------------
+
+pathDistNucSmallv <- file.path(dirDist, "dst-nuc-smallv.txt")
+dfNucSmallv <- read.table(pathDistNucSmallv, header = F, sep = " ", skip = 1)
+rownames(dfNucSmallv) <- dfNucSmallv[, 1]
+dfNucSmallv <- dfNucSmallv[, 2:ncol(dfNucSmallv)]
+### yes, the names of the rows are the same for the columns
+colnames(dfNucSmallv) <- rownames(dfNucSmallv)
+### sort, just in case
+dfNucSmallv <- dfNucSmallv[order(rownames(dfNucSmallv)),
+                           order(colnames(dfNucSmallv))]
+
+pathDistPvgSmallv <- file.path(dirDist, "dst-pvg-smallv.txt")
+dfPvgSmallv <- read.table(pathDistPvgSmallv, header = F, sep = " ", skip = 1)
+rownames(dfPvgSmallv) <- dfPvgSmallv[, 1]
+dfPvgSmallv <- dfPvgSmallv[, 2:ncol(dfPvgSmallv)]
+### yes, the names of the rows are the same for the columns
+colnames(dfPvgSmallv) <- rownames(dfPvgSmallv)
+### sort, just in case
+dfPvgSmallv <- dfPvgSmallv[order(rownames(dfPvgSmallv)),
+                           order(colnames(dfPvgSmallv))]
+
+### difference matrix
+mtDifSmallv <- as.matrix(dfNucSmallv - dfPvgSmallv)
+dfPlotSmallv <- data.frame(matrix(mtDifSmallv))
+colnames(dfPlotSmallv)[1] <- "difference"
+
+### plot
+plotSmallv <- ggplot(dfPlotSmallv, aes(x = difference)) +
+  geom_histogram() +
+  theme_minimal() +
+  theme(text = element_text(size = 24)) +
+  labs(title = "small variants", subtitle = "",
+         x = expression(d[nucmer]-d[pvg]),
+         y = "count",
+         size = 28)
+pdf(file = pathPlotSmallv, width = 9, height = 9)
+print(plotSmallv)
+dev.off()
+
+### x-axis fixed plot
+fileN <- sub(".pdf$", "-xfxd.pdf", basename(pathPlotSmallv))
+pathPlotSnpsXfxd <- file.path(dirname(pathPlotSmallv), fileN)
+plotSmallv <- ggplot(dfPlotSmallv, aes(x = difference)) +
+  geom_histogram() +
+  theme_minimal() +
+  theme(text = element_text(size = 24)) +
+  coord_cartesian(xlim = c(-1, 1)) +
+  labs(title = "small variants", subtitle = "",
+         x = expression(d[nucmer]-d[pvg]),
+         y = "count",
+         size = 28)
+pdf(file = pathPlotSnpsXfxd, width = 9, height = 9)
+print(plotSmallv)
+dev.off()
+
+## nucmer (small variants) and pggb-odgi similarity ---------------------------
+
+### difference matrix
+mtDifNucPos <- as.matrix(dfNucSmallv - dfPosDistNref)
+dfPlotNucPos <- data.frame(matrix(mtDifNucPos))
+colnames(dfPlotNucPos)[1] <- "difference"
+
+### plot
+plotNucPos <- ggplot(dfPlotNucPos, aes(x = difference)) +
+  geom_histogram() +
+  theme_minimal() +
+  theme(text = element_text(size = 24)) +
+  labs(title = "nucmer small variants / pggb-odgi similarity", subtitle = "",
+         x = expression(d[nucmer]-d[pos]),
+         y = "count",
+         size = 28)
+pdf(file = pathPlotNucPos, width = 9, height = 9)
+print(plotNucPos)
+dev.off()
+
+### x-axis fixed plot
+fileN <- sub(".pdf$", "-xfxd.pdf", basename(pathPlotNucPos))
+pathPlotNucPosXfxd <- file.path(dirname(pathPlotNucPos), fileN)
+plotNucPos <- ggplot(dfPlotNucPos, aes(x = difference)) +
+  geom_histogram() +
+  theme_minimal() +
+  coord_cartesian(xlim = c(-1, 1)) +
+  theme(text = element_text(size = 24)) +
+  labs(title = "nucmer small variants / pggb-odgi similarity", subtitle = "",
+         x = expression(d[nucmer]-d[pos]),
+         y = "count",
+         size = 28)
+pdf(file = pathPlotNucPosXfxd, width = 9, height = 9)
+print(plotNucPos)
+dev.off()
+
+## pggb-vg (small variants) and pggb-odgi similarity --------------------------
+
+### difference matrix
+mtDifPvgPos <- as.matrix(dfPvgSmallv - dfPosDistNref)
+dfPlotPvgPos <- data.frame(matrix(mtDifPvgPos))
+colnames(dfPlotPvgPos)[1] <- "difference"
+
+### plot
+plotPvgPos <- ggplot(dfPlotPvgPos, aes(x = difference)) +
+  geom_histogram() +
+  theme_minimal() +
+  theme(text = element_text(size = 24)) +
+  labs(title = "pggb-vg small variants / pggb-odgi similarity", subtitle = "",
+       x = expression(d[pvg]-d[pos]),
+       y = "count",
+       size = 28)
+pdf(file = pathPlotPvgPos, width = 9, height = 9)
+print(plotPvgPos)
+dev.off()
+
+### x-axis fixed plot
+fileN <- sub(".pdf$", "-xfxd.pdf", basename(pathPlotPvgPos))
+pathPlotPvgPosXfxd <- file.path(dirname(pathPlotPvgPos), fileN)
+plotPvgPos <- ggplot(dfPlotPvgPos, aes(x = difference)) +
+  geom_histogram() +
+  theme_minimal() +
+  coord_cartesian(xlim = c(-1, 1)) +
+  theme(text = element_text(size = 24)) +
+  labs(title = "pggb-vg small variants / pggb-odgi similarity", subtitle = "",
+       x = expression(d[pvg]-d[pos]),
+       y = "count",
+       size = 28)
+pdf(file = pathPlotPvgPosXfxd, width = 9, height = 9)
+print(plotPvgPos)
+dev.off()
+
+## distbwt2 and pggb-odgi similarity ------------------------------------------
+
+### read distbwt2 data
+pathSimDbt <- file.path(dirDist, "dst-db2-wref.txt")
+dfDbt <- read.table(pathSimDbt, header = F, sep = " ", skip = 1)
+
+### correct the extra column at the end of the file
+rownames(dfDbt) <- dfDbt[, 1]
+dfDbt <- dfDbt[, 2:ncol(dfDbt)]
+### yes, the names of the rows are the same for the columns
+colnames(dfDbt) <- rownames(dfDbt)
+### sort, just in case
+dfDbt <- dfDbt[order(rownames(dfDbt)), order(colnames(dfDbt))]
+
+### The next two blocks of code were developed to transform the
+### similarity measure from distbwt2 into a distance measure.
+### But distbwt2 does produce a distance measure.
+### The reason why it was mistakenly thought it was a similarity measure
+### lies in the numerical values we were getting (~ 0.9).
+### It turned out that irrespective of the numerical values
+### distbwt2 produces a matrix of distances.
+
+# ### distbwt2 calculates the similarity but sets the diagonal elements to zero,
+# ### so we have to:
+# ### 1) convert from similarity to distance
+# dfDbt <- 1 - dfDbt
+# ### 2) correct diagonal elements
+# for (indD in seq(1:ncol(dfDbt))) {
+#   dfDbt[indD, indD] <- 0
+# }
+# 
+# ### save the matrix without the reference data
+# cat(nrow(dfDbt), " ", 12000000, "\n",
+#     file = pathDbtWref, sep = "")
+# write.table(dfDbt, file = pathDbtWref,
+#             append = T, quote = F, sep = " ", row.names = T, col.names = F)
+
+### difference matrix
+mtDifDbtPos <- as.matrix(dfDbt - dfPosDistWref)
+mtDifDbtPos <- data.frame(matrix(mtDifDbtPos))
+colnames(mtDifDbtPos)[1] <- "difference"
+
+### plot
+plotDbtPos <- ggplot(mtDifDbtPos, aes(x = difference)) +
+  geom_histogram() +
+  theme_minimal() +
+  theme(text = element_text(size = 24)) +
+  labs(title = "distbwt2 / pggb-odgi similarity", subtitle = "",
+       x = expression(d[db2]-d[pos]),
+       y = "count",
+       size = 28)
+pdf(file = pathPlotDbtPos, width = 9, height = 9)
+print(plotDbtPos)
+dev.off()
+
+### x-axis fixed plot
+fileN <- sub(".pdf$", "-xfxd.pdf", basename(pathPlotDbtPos))
+pathPlotPvgPosXfxd <- file.path(dirname(pathPlotDbtPos), fileN)
+plotDbtPos <- ggplot(mtDifDbtPos, aes(x = difference)) +
+  geom_histogram() +
+  theme_minimal() +
+  coord_cartesian(xlim = c(-1, 1)) +
+  theme(text = element_text(size = 24)) +
+  labs(title = "distbwt2 / pggb-odgi similarity", subtitle = "",
+       x = expression(d[db2]-d[odgi]),
+       y = "count",
+       size = 28)
+pdf(file = pathPlotPvgPosXfxd, width = 9, height = 9)
+print(plotDbtPos)
+dev.off()
+
+## distbwt2 distance matrix without the reference ------------------------------
+
+### remove the reference
+dfDbtNref <- dfDbt[which(rownames(dfDbt) != idRef),
+                   which(colnames(dfDbt) != idRef)]
+### save the matrix without the reference data
+cat(nrow(dfDbtNref), " ", 12000000, "\n",
+    file = pathDbtNref, sep = "")
+write.table(dfDbtNref, file = pathDbtNref,
+            append = T, quote = F, sep = " ", row.names = T, col.names = F)
+
+## distbwt2 and nucmer (small variants) ----------------------------------------
+
+### difference matrix
+mtDifDbtNucSmallv <- as.matrix(dfDbtNref - dfNucSmallv)
+mtDifDbtNucSmallv <- data.frame(matrix(mtDifDbtNucSmallv))
+colnames(mtDifDbtNucSmallv)[1] <- "difference"
+
+### plot
+plotDbtNucSmallv <- ggplot(mtDifDbtNucSmallv, aes(x = difference)) +
+  geom_histogram() +
+  theme_minimal() +
+  theme(text = element_text(size = 24)) +
+  labs(title = "distbwt2 / nucmer small variants", subtitle = "",
+       x = expression(d[db2]-d[nucmer]),
+       y = "count",
+       size = 28)
+pdf(file = pathPlotDbtNucSmallv, width = 9, height = 9)
+print(plotDbtNucSmallv)
+dev.off()
+
+### x-axis fixed plot
+fileN <- sub(".pdf$", "-xfxd.pdf", basename(pathPlotDbtNucSmallv))
+pathPlotDbtNucSmallvXfxd <- file.path(dirname(pathPlotDbtNucSmallv), fileN)
+plotDbtNucSmallv <- ggplot(mtDifDbtNucSmallv, aes(x = difference)) +
+  geom_histogram() +
+  theme_minimal() +
+  coord_cartesian(xlim = c(-1, 1)) +
+  theme(text = element_text(size = 24)) +
+  labs(title = "distbwt2 / nucmer small variants", subtitle = "",
+       x = expression(d[db2]-d[nucmer]),
+       y = "count",
+       size = 28)
+pdf(file = pathPlotDbtNucSmallvXfxd, width = 9, height = 9)
+print(plotDbtNucSmallv)
+dev.off()
+
+```
+
+Now we load the distance matrices and build the corresponding trees with an improved version of the neighbour joining algorithm.
+
+```{r makes the neighbour joining trees}
+## header ---------------------------------------------------------------------
+
+options(scipen = 999)
+options(stringsAsFactors = F)
+rm(list = ls())
+library(scriptName)
+library(here)
+library(ape)
+
+## settings -------------------------------------------------------------------
+
+### fixed settings
+dirBase <- dirname(here())
+### dev 
+### dirBase <- "/home/lore/prog/graphs/sgp-eva/run-2"
+### dirBase <- "/Users/Lorenzo/prog/graphs/sgp-eva/run-2"
+### dirBase <- "/home/ltattini/prog/graphs/sgp-eva/run-3"
+
+### input folder
+dirInput <- file.path(dirBase, "dst")
+### output folder
+dirTre <- file.path(dirBase, "phy", "nja")
+dirTreNuc <- file.path(dirTre, "nuc")
+dir.create(dirTreNuc, recursive = T, showWarnings = F)
+dirTrePvg <- file.path(dirTre, "pvg")
+dir.create(dirTrePvg, recursive = T, showWarnings = F)
+dirTrePos <- file.path(dirTre, "pos")
+dir.create(dirTrePos, recursive = T, showWarnings = F)
+dirTreDbt <- file.path(dirTre, "db2")
+dir.create(dirTreDbt, recursive = T, showWarnings = F)
+
+### the outgroup sample
+idOutgroup <- "NCYC3947-0"
+
+## clmnt ----------------------------------------------------------------------
+
+### script name
+myName <- current_filename()
+
+### make all the trees
+allDstMt <- list.files(dirInput, pattern = "^dst-*.", full.names = T)
+### dev
+### indM <- allDstMt[1]
+for (indM in allDstMt) {
+  ### output
+  dirSub <- sapply(strsplit(x = basename(indM), split = "-"), "[[", 2)
+  namePdf <- sub("txt$", "pdf",
+                 sub("dst-", "", basename(indM)))
+  pathTreePdf <- file.path(dirTre, dirSub, namePdf)
+  nameTreefile <- sub("txt$", "tree",
+                      sub("dst-", "", basename(indM)))
+  pathTreefile <- file.path(dirTre, dirSub, nameTreefile)
+  ### load the data
+  dfDist <- read.table(indM, header = F, sep = " ", skip = 1)
+  row.names(dfDist) <- dfDist[, 1]
+  dfDist <- dfDist[, c(2:ncol(dfDist))]
+  colnames(dfDist) <- row.names(dfDist)
+  mtDist <- as.matrix(dfDist)
+  trDist <- bionj(mtDist)
+  trDistRoot <- root(trDist, outgroup = idOutgroup, resolve.root = T)
+  ### save the phylogeny in tree (treefile for iqtree) format
+  write.tree(trDistRoot,file = pathTreefile, append = F,
+             digits = 10, tree.names = F)
+  ### print the tree
+  pdf(file = pathTreePdf, width = 26, height = 26)
+  plot.phylo(trDistRoot, type = "phylogram", use.edge.length = T)
+  dev.off()
+}
+
+```
+
+And here we compare the trees produced with the neighbour joining algorithm.
+
+```{r compares the neighbour joining trees}
+## header ---------------------------------------------------------------------
+
+options(scipen = 999)
+options(stringsAsFactors = F)
+rm(list = ls())
+library(scriptName)
+library(here)
+library(phytools)
+library(TreeDist)
+
+## settings -------------------------------------------------------------------
+
+### fixed settings
+dirBase <- dirname(here())
+### dev 
+### dirBase <- "/home/lore/prog/graphs/sgp-eva/run-2"
+### dirBase <- "/Users/Lorenzo/prog/graphs/sgp-eva/run-2"
+
+### input folder
+dirInput <- file.path(dirBase, "phy", "nja")
+### output folder
+dirOutput <- file.path(dirBase, "phy", "cmp-nja")
+unlink(dirOutput, recursive = T)
+dir.create(dirOutput, showWarnings = F)
+### output trees-distances file
+pathTreeDstNja <- file.path(dirBase, "phy", "cmp-nja", "dst-nja.txt")
+unlink(pathTreeDstNja)
+### write the header 
+cat("tree 1", "\t", "tree 2", "\t" ,"GRF distance", "\n", sep = "",
+    file = pathTreeDstNja)
+
+### set the classes of tree to be compared (they must match the names
+### e.g. the class "indels" of strClassesNuc refers to the file
+### nuc-indels.tree): the first element of strClassesNuc
+### is compared with the first element of strClassesPvg and so on
+strClassesNuc <- c("snps", "indels", "smallv")
+strClassesPvg <- c("msnps", "indels", "smallv")
+
+## clmnt ----------------------------------------------------------------------
+
+### script name
+myName <- current_filename()
+
+## nucmer vs pggb-vg ----------------------------------------------------------
+
+for (indT in 1:length(strClassesPvg)) {
+  ### load the two newick files
+  pathNwkNuc <- list.files(dirInput,
+                           pattern = paste0("nuc-",
+                                            strClassesNuc[indT],
+                                            "\\.tree$"),
+                           recursive = T, full.names = T)
+  pathNwkPvg <- list.files(dirInput,
+                            pattern = paste0("pvg-",
+                                             strClassesPvg[indT],
+                                             "\\.tree$"),
+                            recursive = T, full.names = T)
+  nwkNuc <- read.newick(pathNwkNuc)
+  nwkPvg <- read.newick(pathNwkPvg)
+  ### concatenate
+  nwkMrg <- cophylo(nwkNuc, nwkPvg, print = T, rotate = T)
+  ### set output
+  nameOut <- paste0("nuc-", strClassesNuc[indT], "-",
+                    "pvg-", strClassesPvg[indT], ".pdf")
+  pathOut <- file.path(dirOutput, nameOut)
+  ### plot
+  pdf(file = pathOut, width = 24, height = 30)
+  plot(nwkMrg,
+       link.type = "curved",
+       link.lwd = 3,
+       link.lty = "solid",
+       link.col = make.transparent("black", 0.25),
+       fsize = 1.5)
+  tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "red",
+                    bg = "red", frame = "none")
+  tiplabels.cophylo(which = "right", pch = 21, cex = 1.5, col = "blue",
+                    bg = "blue", frame = "none")
+  dev.off()
+  
+  ### generalised Robinson–Foulds distance
+  valTrDst <- TreeDistance(nwkNuc, nwkPvg)
+  ### write to output
+  nameT1 <- sub(pattern = "\\.tree$",
+                replacement = "",
+                x = basename(pathNwkNuc))
+  nameT2 <- sub(pattern = "\\.tree$",
+                replacement = "",
+                x = basename(pathNwkPvg))
+  cat(nameT1, "\t", nameT2, "\t", valTrDst, "\n",
+      sep = "", file = pathTreeDstNja, append = T)
+}
+
+## nucmer vs pggb-odgi similarity (though not very fair) ----------------------
+
+### load the two newick files
+pathNwkNuc <- list.files(dirInput,
+                         pattern = paste0("nuc-smallv.tree$"),
+                         recursive = T, full.names = T)
+pathNwkPosNref <- list.files(dirInput,
+                              pattern = paste0("pos-allvar-nref.tree$"),
+                              recursive = T, full.names = T)
+nwkNuc <- read.newick(pathNwkNuc)
+nwkPosNref <- read.newick(pathNwkPosNref)
+### concatenate
+nwkMrg <- cophylo(nwkNuc, nwkPosNref, print = T, rotate = T)
+### set output
+nameOut <- c("nuc-smallv-pos-allvar-nref.pdf")
+pathOut <- file.path(dirOutput, nameOut)
+### plot
+pdf(file = pathOut, width = 24, height = 30)
+plot(nwkMrg,
+     link.type = "curved",
+     link.lwd = 3,
+     link.lty = "solid",
+     link.col = make.transparent("black", 0.25),
+     fsize = 1.5)
+tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "red",
+                  bg = "red", frame = "none")
+tiplabels.cophylo(which = "right", pch = 21, cex = 1.5, col = "green4",
+                  bg = "green4", frame = "none")
+dev.off()
+
+### generalised Robinson–Foulds distance
+valTrDst <- TreeDistance(nwkNuc, nwkPosNref)
+### write to output
+nameT1 <- sub(pattern = "\\.tree$",
+              replacement = "",
+              x = basename(pathNwkNuc))
+nameT2 <- sub(pattern = "\\.tree$",
+              replacement = "",
+              x = basename(pathNwkPosNref))
+cat(nameT1, "\t", nameT2, "\t", valTrDst, "\n",
+    sep = "", file = pathTreeDstNja, append = T)
+
+## pggb-vg vs pggb-odgi similarity (though not very fair) ---------------------
+
+### load the pggb-vg newick files (the newick from pggb-odgi similarity 
+### has been read in the section above)
+pathNwkPvg <- list.files(dirInput,
+                          pattern = paste0("pvg-smallv.tree$"),
+                          recursive = T, full.names = T)
+nwkPvg <- read.newick(pathNwkPvg)
+### concatenate
+nwkMrg <- cophylo(nwkPvg, nwkPosNref, print = T, rotate = T)
+### set output
+nameOut <- c("pvg-smallv-pos-allvar-nref.pdf")
+pathOut <- file.path(dirOutput, nameOut)
+### plot
+pdf(file = pathOut, width = 24, height = 30)
+plot(nwkMrg,
+     link.type = "curved",
+     link.lwd = 3,
+     link.lty = "solid",
+     link.col = make.transparent("black", 0.25),
+     fsize = 1.5)
+tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "blue",
+                  bg = "blue", frame = "none")
+tiplabels.cophylo(which = "right", pch = 21, cex = 1.5, col = "green4",
+                  bg = "green4", frame = "none")
+dev.off()
+
+### generalised Robinson–Foulds distance
+valTrDst <- TreeDistance(nwkPvg, nwkPosNref)
+### write to output
+nameT1 <- sub(pattern = "\\.tree$",
+              replacement = "",
+              x = basename(pathNwkPvg))
+nameT2 <- sub(pattern = "\\.tree$",
+              replacement = "",
+              x = basename(pathNwkPosNref))
+cat(nameT1, "\t", nameT2, "\t", valTrDst, "\n",
+    sep = "", file = pathTreeDstNja, append = T)
+
+## distbwt2 vs pggb-odgi similarity (indeed very fair) ------------------------
+
+### load the two newick files
+pathNwkDbtWref <- list.files(dirInput,
+                             pattern = paste0("db2-wref.tree$"),
+                             recursive = T, full.names = T)
+pathNwkPosWref <- list.files(dirInput,
+                              pattern = paste0("pos-allvar-wref.tree$"),
+                              recursive = T, full.names = T)
+nwkDbtWref <- read.newick(pathNwkDbtWref)
+nwkPosWref <- read.newick(pathNwkPosWref)
+### concatenate
+nwkMrg <- cophylo(nwkDbtWref, nwkPosWref, print = T, rotate = T)
+### set output
+nameOut <- c("db2-pos.pdf")
+pathOut <- file.path(dirOutput, nameOut)
+### plot
+pdf(file = pathOut, width = 24, height = 30)
+plot(nwkMrg,
+     link.type = "curved",
+     link.lwd = 3,
+     link.lty = "solid",
+     link.col = make.transparent("black", 0.25),
+     fsize = 1.5)
+tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "purple",
+                  bg = "purple", frame = "none")
+tiplabels.cophylo(which = "right", pch = 21, cex = 1.5, col = "green4",
+                  bg = "green4", frame = "none")
+dev.off()
+
+### generalised Robinson–Foulds distance
+valTrDst <- TreeDistance(nwkDbtWref, nwkPosWref)
+### write to output
+nameT1 <- sub(pattern = "\\.tree$",
+              replacement = "",
+              x = basename(pathNwkDbtWref))
+nameT2 <- sub(pattern = "\\.tree$",
+              replacement = "",
+              x = basename(pathNwkPosWref))
+cat(nameT1, "\t", nameT2, "\t", valTrDst, "\n",
+    sep = "", file = pathTreeDstNja, append = T)
+
+## distbwt2 vs nucmer (though not very fair) ----------------------------------
+
+### load distbwt2 newick file
+pathNwkDbtNref <- list.files(dirInput,
+                             pattern = paste0("db2-nref.tree$"),
+                             recursive = T, full.names = T)
+nwkDbtNref <- read.newick(pathNwkDbtNref)
+
+### concatenate
+nwkMrg <- cophylo(nwkDbtNref, nwkNuc, print = T, rotate = T)
+### set output
+nameOut <- c("db2-nucmer.pdf")
+pathOut <- file.path(dirOutput, nameOut)
+### plot
+pdf(file = pathOut, width = 24, height = 30)
+plot(nwkMrg,
+     link.type = "curved",
+     link.lwd = 3,
+     link.lty = "solid",
+     link.col = make.transparent("black", 0.25),
+     fsize = 1.5)
+tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "purple",
+                  bg = "purple", frame = "none")
+tiplabels.cophylo(which = "right", pch = 21, cex = 1.5, col = "red",
+                  bg = "red", frame = "none")
+dev.off()
+
+### generalised Robinson–Foulds distance
+valTrDst <- TreeDistance(nwkDbtNref, nwkNuc)
+### write to output
+nameT1 <- sub(pattern = "\\.tree$",
+              replacement = "",
+              x = basename(pathNwkDbtNref))
+nameT2 <- sub(pattern = "\\.tree$",
+              replacement = "",
+              x = basename(pathNwkNuc))
+cat(nameT1, "\t", nameT2, "\t", valTrDst, "\n",
+    sep = "", file = pathTreeDstNja, append = T)
+
+```
+
+In this chunk we (re-)discover that:
+1) distbwt2 shows less variance in the distances
+2) it misses the AIS high divergence due to the two S. kudriavzevii chromosomes
+
+Now we can compare the trees built with iqtree against the corresponding trees built with the neighbour joining algorithm.
+
+```{r compares the iqtree trees vs the neighbour joining trees}
+## header ---------------------------------------------------------------------
+
+options(scipen = 999)
+options(stringsAsFactors = F)
+rm(list = ls())
+library(scriptName)
+library(here)
+library(phytools)
+library(TreeDist)
+
+## settings -------------------------------------------------------------------
+
+### fixed settings
+dirBase <- dirname(here())
+### dev 
+### dirBase <- "/home/lore/prog/graphs/sgp-eva/run-2"
+### dirBase <- "/Users/Lorenzo/prog/graphs/sgp-eva/run-2"
+
+### input folder
+dirInput <- file.path(dirBase, "phy")
+### output folder
+dirOutput <- file.path(dirBase, "phy", "cmp-mdl")
+unlink(dirOutput, recursive = T)
+dir.create(dirOutput, showWarnings = F)
+### output trees-distances file
+pathTreeDstMdl <- file.path(dirBase, "phy", "cmp-mdl", "dst-mdl.txt")
+unlink(pathTreeDstMdl)
+### write the header 
+cat("variants", "\t" ,"GRF distance (iqtree vs nj-algorithm)", "\n",
+    sep = "", file = pathTreeDstMdl)
+
+## clmnt ----------------------------------------------------------------------
+
+### script name
+myName <- current_filename()
+
+## pggb-vg's msnp -------------------------------------------------------------
+
+### load the two newick files
+namePvgIqt <- c("multis-msnps-sampfix.min4.phy.treefile")
+pathPvgIqt <- file.path(dirInput, "iqt", "pvg-msnps", namePvgIqt)
+namePvgNja <- c("pvg-msnps.tree")
+pathPvgNja <- file.path(dirInput, "nja", "pvg", namePvgNja)
+nwkPvgIqt <- read.newick(pathPvgIqt)
+nwkPvgNja <- read.newick(pathPvgNja)
+
+### concatenate
+nwkMrg <- cophylo(nwkPvgIqt, nwkPvgNja, print = T, rotate = T)
+
+### set output
+nameOut <- c("pvg-msnp-iqt-nja.pdf")
+pathOut <- file.path(dirOutput, nameOut)
+### plot
+pdf(file = pathOut, width = 24, height = 30)
+plot(nwkMrg,
+     link.type = "curved",
+     link.lwd = 3,
+     link.lty = "solid",
+     link.col = make.transparent("blue", 0.25),
+     fsize = 1.5)
+tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "turquoise",
+                  bg = "turquoise", frame = "none")
+tiplabels.cophylo(which = "right", pch = 21, cex = 1.5, col = "gold",
+                  bg = "gold", frame = "none")
+dev.off()
+
+### generalised Robinson–Foulds distance
+valTrDst <- TreeDistance(nwkPvgIqt, nwkPvgNja)
+### write to output
+nameT2 <- sub(pattern = "\\.tree$",
+              replacement = "",
+              x = basename(pathPvgNja))
+cat(nameT2, "\t", valTrDst, "\n",
+    sep = "", file = pathTreeDstMdl, append = T)
+
+## nucmer's msnp --------------------------------------------------------------
+
+### load the two newick files
+nameNucIqt <- c("multis-snps-genfix.min4.phy.treefile")
+pathNucIqt <- file.path(dirInput, "iqt", "nuc", nameNucIqt)
+nameNucNja <- c("nuc-snps.tree")
+pathNucNja <- file.path(dirInput, "nja", "nuc", nameNucNja)
+nwkNucIqt <- read.newick(pathNucIqt)
+nwkNucNja <- read.newick(pathNucNja)
+
+### concatenate
+nwkMrg <- cophylo(nwkNucIqt, nwkNucNja, print = T, rotate = T)
+
+### set output
+nameOut <- c("nuc-snp-iqt-nja.pdf")
+pathOut <- file.path(dirOutput, nameOut)
+### plot
+pdf(file = pathOut, width = 24, height = 30)
+plot(nwkMrg,
+     link.type = "curved",
+     link.lwd = 3,
+     link.lty = "solid",
+     link.col = make.transparent("red", 0.25),
+     fsize = 1.5)
+tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "turquoise",
+                  bg = "turquoise", frame = "none")
+tiplabels.cophylo(which = "right", pch = 21, cex = 1.5, col = "gold",
+                  bg = "gold", frame = "none")
+dev.off()
+
+### generalised Robinson–Foulds distance
+valTrDst <- TreeDistance(nwkNucIqt, nwkNucNja)
+### write to output
+nameT2 <- sub(pattern = "\\.tree$",
+              replacement = "",
+              x = basename(pathNucNja))
+cat(nameT2, "\t", valTrDst, "\n",
+    sep = "", file = pathTreeDstMdl, append = T)
+
+```
+
+We can also compare directly the cladogram of `phybwt2` and the phylogeny of `pggb-odgi similarity`.
+
+```{r compares phybwt2 cladogram vs pggb-odgi similarity phylogeny}
+## header ---------------------------------------------------------------------
+
+options(scipen = 999)
+options(stringsAsFactors = F)
+rm(list = ls())
+library(scriptName)
+library(here)
+library(phytools)
+library(TreeDist)
+
+## settings -------------------------------------------------------------------
+
+### fixed settings
+dirBase <- dirname(here())
+### dev 
+### dirBase <- "/home/lore/prog/graphs/sgp-eva/run-2"
+### dirBase <- "/Users/Lorenzo/prog/graphs/sgp-eva/run-2"
+
+### input folder
+dirInput <- file.path(dirBase, "phy")
+### output folder
+dirOutput <- file.path(dirBase, "phy", "cmp-apr")
+unlink(dirOutput, recursive = T)
+dir.create(dirOutput, showWarnings = F)
+### output trees-distances file
+pathTreeDstApr <- file.path(dirBase, "phy", "cmp-apr", "dst-apr.txt")
+unlink(pathTreeDstApr)
+### write the header 
+cat("approach", "\t" ,"GRF distance", "\n",
+    sep = "", file = pathTreeDstApr)
+
+## clmnt ----------------------------------------------------------------------
+
+### script name
+myName <- current_filename()
+
+## phybwt2 vs pggb-odgi similarity (with neighbour joining) -------------------
+
+### load the two newick files
+namePbt <- c("pb2-wref.tree")
+dirPbt <- file.path(dirInput, "pb2")
+pathPbt <- list.files(path = dirPbt, pattern = namePbt, full.names = T,
+                      recursive = T)
+pathNwkPosWref <- list.files(dirInput,
+                              pattern = paste0("pos-allvar-wref.tree$"),
+                              recursive = T, full.names = T)
+nwkPbt <- read.newick(pathPbt)
+nwkNwkPosWref <- read.newick(pathNwkPosWref)
+
+### concatenate
+nwkMrg <- cophylo(nwkPbt, nwkNwkPosWref, print = T, rotate = T)
+
+### set output
+nameOut <- c("pb2-pos.pdf")
+pathOut <- file.path(dirOutput, nameOut)
+
+### plot
+pdf(file = pathOut, width = 24, height = 30)
+plot(nwkMrg,
+     link.type = "curved",
+     link.lwd = 3,
+     link.lty = "solid",
+     link.col = make.transparent("black", 0.25),
+     fsize = 1.5)
+tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "purple",
+                  bg = "purple", frame = "none")
+tiplabels.cophylo(which = "right", pch = 21, cex = 1.5, col = "green4",
+                  bg = "green4", frame = "none")
+dev.off()
+
+### generalised Robinson–Foulds distance
+valTrDst <- TreeDistance(nwkPbt, nwkNwkPosWref)
+### write to output
+cat("pb2-pos", "\t", valTrDst, "\n",
+    sep = "", file = pathTreeDstApr, append = T)
+
+```
+
+Shall we also use weighted metrics (i.e. those metrics that take into account also branch lengths) to compare the trees? In that case we can use Goluch et al. as a reference to pick one. Also in Goluch et al. (Visual TreeCmp) there's a java tool for running the calculations.
