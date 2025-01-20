@@ -1,33 +1,36 @@
-run-N
-|-- aln
-|   `-- wga
-|-- aux
-|-- dif-dst
-|-- dst
-|-- gen
-|   `-- ass
-|-- mrk
-|-- phy
-|   |-- cmb
-|   |-- iqt
-|   |   |-- nuc
-|   |   `-- pggb-msnps
-|   |-- njt
-|   |   |-- nuc
-|   |   |-- odgsim
-|   |   |-- pb2
-|   |   `-- pggb
-|   `-- pb2
-|-- scr
-|-- var
-|   |-- all
-|   |   `-- pggb
-|   |-- small
-|   |   |-- nuc
-|   |   |   |-- ms-vcf
-|   |   |   `-- os-vcf
-|   |   `-- pggb
-|   `-- sv
-|       `-- pggb
-`-- vg
-    `-- pggb
+├── scr
+├── aux
+├── mrk
+├── gen
+│   └── ass
+├── aln
+│   └── wga
+├── var
+│   ├── all
+│   │   └── pvg
+│   ├── small
+│   │   ├── nuc
+│   │   │   ├── ms-vcf
+│   │   │   └── os-vcf
+│   │   └── pvg
+│   └── sv
+│       └── pvg
+├── dst
+├── dif-dst
+├── gra-dss
+│
+└── phy
+    ├── cmp-apr
+    ├── cmp-mdl
+    ├── cmp-nja
+    ├── cmp-nuc-iqt
+    ├── iqt
+    │   ├── nuc
+    │   ├── nuc-sc
+    │   └── pvg-msnps
+    ├── nja
+    │   ├── db2
+    │   ├── nuc
+    │   ├── pos
+    │   └── pvg
+    └── pb2
