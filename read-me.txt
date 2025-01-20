@@ -1,0 +1,72 @@
+• 27
+
+Testing with toy graph and "no-invariant.R".
+
+• 26
+
+Developing and testing "nuc-sc", gli alberi single-chromosome fatti da iqtree2 coi dati di nucmer.
+
+Developing "no-invariant.R".
+
+• 24
+
+Debug coordinata ref delle delezioni nel vcf di nucmer. Debug calcolo delle delezioni nel vcf di nucmer.
+
+• 23
+
+Versione con il grafo toy (fatto per debuggare panda) per provare iqtree2.
+
+• 19
+
+Versione che gira con pggb-202410160258499fff88.
+
+• 17
+
+Versione che gira con pggb-202409162204183c21d2.
+
+• 15
+
+Per il test con il grafo toy/run-8 e toy/run-9.
+
+La struttura delle cartelle è stata leggermente cambiata in toy/run-8.
+
+In toy/run-9 abbiamo le pansn-2024.
+
+• 14
+
+Per grafo Sc (phhd/run-3-202407121557360d849d). Ma con il vcf di vg ripreso dalla run 2 del grafo (202307130714058eaf35).
+
+• 13
+
+Con il grafo prodotto con la versione di pggb 202407121557360d849d.
+
+Typos "activate one chunk among 8 and 9 (for phybwt2 data) and deactivate the other one" corrected.
+
+• 12
+
+Con le label di pggb cambiate in pggb-vg, e le cartelle "pggb" cambiate in "pvg". La cartella "vg" cambiata in "gra".
+
+Anche le label di odgi sono state cambiate:
+testo: odgi similarity -> pggb-odgi similarity
+label cartelle: odgsim -> pos
+lable file: odgi -> pos, OdgiSim -> Pos, (?) Odgi -> Pos
+
+• 11
+
+Con aggiunta di Sj NCYC3947 come outgroup.
+
+Uguale alla 10 ma con Pbt trasformato in Dbt.
+
+• 10
+
+La corsa con paradoxus.
+
+• precedenti
+
+E con distbwt2 versione 2, ovvero quella che calcola sempre la cosine similarity, ma "amplifica" il peso di ciascun '1' con la lunghezza del contesto comune.
+
+Inoltre k_min è ri-settato a 250.
+
+Qui, rispetto alla run 7, ci sono anche le label di distbwt2 esplicite, e.g. cmp-nja/db2-nucmer.pdf che prima si chiamava cmp-nja/pb2-nucmer.pdf, (per non fare casino con quelle di phybwt2).
+
+Anche "rnr-phybwt2.sh" è stato aggiornato, sia un po' di nomenclatura sia la versione che viene corsa su Hulk.

@@ -153,44 +153,6 @@ with_mito="FALSE"
 # 'YPS128-0-genome.fa.gz' \
 # 'S288C-0-genome.fa.gz')
 
-# ### scspsj phhd data
-# nuc_assemblies=('SGDref-0-genome.fa.gz' \
-# 'BPK-1-genome.fa.gz' \
-# 'BPK-2-genome.fa.gz' \
-# 'AIS-1-genome.fa.gz' \
-# 'AIS-2-genome.fa.gz' \
-# 'AHL-0-genome.fa.gz' \
-# 'BFH-1-genome.fa.gz' \
-# 'BFH-2-genome.fa.gz' \
-# 'CMF-1-genome.fa.gz' \
-# 'CMF-2-genome.fa.gz' \
-# 'BMC_2a-0-genome.fa.gz' \
-# 'AMH_1a-0-genome.fa.gz' \
-# 'JXXY161-0-genome.fa.gz' \
-# 'CBS432-0-genome.fa.gz' \
-# 'N44-0-genome.fa.gz' \
-# 'UFRJ50816-0-genome.fa.gz' \
-# 'UWOPS919171-0-genome.fa.gz' \
-# 'YPS138-0-genome.fa.gz' \
-# 'NCYC3947-0-genome.fa.gz')
-
-# ### scspsj hc data
-# nuc_assemblies=('SGDref-0-genome.fa.gz' \
-# 'BPK-0-genome.fa.gz' \
-# 'AIS-0-genome.fa.gz' \
-# 'AHL-0-genome.fa.gz' \
-# 'BFH-0-genome.fa.gz' \
-# 'CMF-0-genome.fa.gz' \
-# 'BMC_2a-0-genome.fa.gz' \
-# 'AMH_1a-0-genome.fa.gz' \
-# 'JXXY161-0-genome.fa.gz' \
-# 'CBS432-0-genome.fa.gz' \
-# 'N44-0-genome.fa.gz' \
-# 'UFRJ50816-0-genome.fa.gz' \
-# 'UWOPS919171-0-genome.fa.gz' \
-# 'YPS138-0-genome.fa.gz' \
-# 'NCYC3947-0-genome.fa.gz')
-
 # ### sc phhd data
 # nuc_assemblies=('SGDref-0-genome.fa.gz' \
 # 'AAB-0-genome.fa.gz' \
@@ -300,93 +262,343 @@ with_mito="FALSE"
 # 'YPS128-0-genome.fa.gz' \
 # 'UWOPS034614-0-genome.fa.gz')
 
-### sc hc
+# ### sc hc
+# nuc_assemblies=('SGDref-0-genome.fa.gz' \
+# 'AAB-0-genome.fa.gz' \
+# 'AAC-0-genome.fa.gz' \
+# 'AAR-0-genome.fa.gz' \
+# 'ABA-0-genome.fa.gz' \
+# 'ABH-0-genome.fa.gz' \
+# 'ACH-0-genome.fa.gz' \
+# 'ADE-0-genome.fa.gz' \
+# 'ADI-0-genome.fa.gz' \
+# 'ADM-0-genome.fa.gz' \
+# 'ADQ-0-genome.fa.gz' \
+# 'ADS-0-genome.fa.gz' \
+# 'AEG-0-genome.fa.gz' \
+# 'AEH-0-genome.fa.gz' \
+# 'AEL-0-genome.fa.gz' \
+# 'AFH-0-genome.fa.gz' \
+# 'AFI-0-genome.fa.gz' \
+# 'AGA_1a-0-genome.fa.gz' \
+# 'AGK-0-genome.fa.gz' \
+# 'AHG-0-genome.fa.gz' \
+# 'AHL-0-genome.fa.gz' \
+# 'AIC-0-genome.fa.gz' \
+# 'AIE-0-genome.fa.gz' \
+# 'AIF-0-genome.fa.gz' \
+# 'AIG-0-genome.fa.gz' \
+# 'AIS-0-genome.fa.gz' \
+# 'AKH_1a-0-genome.fa.gz' \
+# 'AKR-0-genome.fa.gz' \
+# 'ALI-0-genome.fa.gz' \
+# 'ALS_1a-0-genome.fa.gz' \
+# 'AMH_1a-0-genome.fa.gz' \
+# 'AMM_1a-0-genome.fa.gz' \
+# 'ANE-0-genome.fa.gz' \
+# 'APG-0-genome.fa.gz' \
+# 'ASB-0-genome.fa.gz' \
+# 'ASG-0-genome.fa.gz' \
+# 'ASN-0-genome.fa.gz' \
+# 'ATM_1a-0-genome.fa.gz' \
+# 'AVB-0-genome.fa.gz' \
+# 'AVI_1a-0-genome.fa.gz' \
+# 'BAF-0-genome.fa.gz' \
+# 'BAG_1a-0-genome.fa.gz' \
+# 'BAH-0-genome.fa.gz' \
+# 'BAI_1a-0-genome.fa.gz' \
+# 'BAK_1a-0-genome.fa.gz' \
+# 'BAL_1a-0-genome.fa.gz' \
+# 'BAM-0-genome.fa.gz' \
+# 'BAP_1a-0-genome.fa.gz' \
+# 'BAQ_1a-0-genome.fa.gz' \
+# 'BBF-0-genome.fa.gz' \
+# 'BBL-0-genome.fa.gz' \
+# 'BBM_1a-0-genome.fa.gz' \
+# 'BCN-0-genome.fa.gz' \
+# 'BFH-0-genome.fa.gz' \
+# 'BFP_1a-0-genome.fa.gz' \
+# 'BHH-0-genome.fa.gz' \
+# 'BLD_1a-0-genome.fa.gz' \
+# 'BMC_2a-0-genome.fa.gz' \
+# 'BPG-0-genome.fa.gz' \
+# 'BPK-0-genome.fa.gz' \
+# 'CAS_1a-0-genome.fa.gz' \
+# 'CBM-0-genome.fa.gz' \
+# 'CCC_1a-0-genome.fa.gz' \
+# 'CCQ_1a-0-genome.fa.gz' \
+# 'CCT_1a-0-genome.fa.gz' \
+# 'CDA-0-genome.fa.gz' \
+# 'CDG_1a-0-genome.fa.gz' \
+# 'CDN_1a-0-genome.fa.gz' \
+# 'CEI_1a-0-genome.fa.gz' \
+# 'CEL_1a-0-genome.fa.gz' \
+# 'CEQ_1a-0-genome.fa.gz' \
+# 'CFA-0-genome.fa.gz' \
+# 'CFF-0-genome.fa.gz' \
+# 'CIC-0-genome.fa.gz' \
+# 'CIH-0-genome.fa.gz' \
+# 'CKB-0-genome.fa.gz' \
+# 'CLL-0-genome.fa.gz' \
+# 'CLN-0-genome.fa.gz' \
+# 'CMF-0-genome.fa.gz' \
+# 'CNT-0-genome.fa.gz' \
+# 'CPG_1a-0-genome.fa.gz' \
+# 'CQS_1a-0-genome.fa.gz' \
+# 'CRB_1a-0-genome.fa.gz' \
+# 'DBVPG6044-0-genome.fa.gz' \
+# 'YPS128-0-genome.fa.gz' \
+# 'JXXY161-0-genome.fa.gz')
+
+# ### scsp toy data
+# nuc_assemblies=('SGDref-0-genome.fa.gz' \
+# 'DBVPG6765-0-genome.fa.gz' \
+# 'CMF-1-genome.fa.gz' \
+# 'CMF-2-genome.fa.gz' \
+# 'AAR-0-genome.fa.gz' \
+# 'ABA-0-genome.fa.gz' \
+# 'ABH-0-genome.fa.gz' \
+# 'AMH_1a-0-genome.fa.gz' \
+# 'YPS128-0-genome.fa.gz' \
+# 'S288C-0-genome.fa.gz' \
+# 'CBS432-0-genome.fa.gz')
+
+# ### scsp phhd data
+# nuc_assemblies=('SGDref-0-genome.fa.gz' \
+# 'AAB-0-genome.fa.gz' \
+# 'AAC-1-genome.fa.gz' \
+# 'AAC-2-genome.fa.gz' \
+# 'AAR-0-genome.fa.gz' \
+# 'ABA-0-genome.fa.gz' \
+# 'ABH-0-genome.fa.gz' \
+# 'ACH-0-genome.fa.gz' \
+# 'ADE-0-genome.fa.gz' \
+# 'ADI-0-genome.fa.gz' \
+# 'ADM-1-genome.fa.gz' \
+# 'ADM-2-genome.fa.gz' \
+# 'ADQ-0-genome.fa.gz' \
+# 'ADS-0-genome.fa.gz' \
+# 'AEG-0-genome.fa.gz' \
+# 'AEH-0-genome.fa.gz' \
+# 'AEL-1-genome.fa.gz' \
+# 'AEL-2-genome.fa.gz' \
+# 'AFH-0-genome.fa.gz' \
+# 'AFI-0-genome.fa.gz' \
+# 'AGA_1a-0-genome.fa.gz' \
+# 'AGK-0-genome.fa.gz' \
+# 'AHG-0-genome.fa.gz' \
+# 'AHL-0-genome.fa.gz' \
+# 'AIC-0-genome.fa.gz' \
+# 'AIE-0-genome.fa.gz' \
+# 'AIF-1-genome.fa.gz' \
+# 'AIF-2-genome.fa.gz' \
+# 'AIG-0-genome.fa.gz' \
+# 'AIS-1-genome.fa.gz' \
+# 'AIS-2-genome.fa.gz' \
+# 'AKH_1a-0-genome.fa.gz' \
+# 'AKR-1-genome.fa.gz' \
+# 'AKR-2-genome.fa.gz' \
+# 'ALI-1-genome.fa.gz' \
+# 'ALI-2-genome.fa.gz' \
+# 'ALS_1a-0-genome.fa.gz' \
+# 'AMH_1a-0-genome.fa.gz' \
+# 'AMM_1a-0-genome.fa.gz' \
+# 'ANE-0-genome.fa.gz' \
+# 'APG-0-genome.fa.gz' \
+# 'ASB-1-genome.fa.gz' \
+# 'ASB-2-genome.fa.gz' \
+# 'ASG-0-genome.fa.gz' \
+# 'ASN-1-genome.fa.gz' \
+# 'ASN-2-genome.fa.gz' \
+# 'ATM_1a-0-genome.fa.gz' \
+# 'AVB-0-genome.fa.gz' \
+# 'AVI_1a-0-genome.fa.gz' \
+# 'BAF-1-genome.fa.gz' \
+# 'BAF-2-genome.fa.gz' \
+# 'BAG_1a-0-genome.fa.gz' \
+# 'BAH-0-genome.fa.gz' \
+# 'BAI_1a-0-genome.fa.gz' \
+# 'BAK_1a-0-genome.fa.gz' \
+# 'BAL_1a-0-genome.fa.gz' \
+# 'BAM-0-genome.fa.gz' \
+# 'BAP_1a-0-genome.fa.gz' \
+# 'BAQ_1a-0-genome.fa.gz' \
+# 'BBF-1-genome.fa.gz' \
+# 'BBF-2-genome.fa.gz' \
+# 'BBL-0-genome.fa.gz' \
+# 'BBM_1a-0-genome.fa.gz' \
+# 'BCN-0-genome.fa.gz' \
+# 'BFH-1-genome.fa.gz' \
+# 'BFH-2-genome.fa.gz' \
+# 'BFP_1a-0-genome.fa.gz' \
+# 'BHH-0-genome.fa.gz' \
+# 'BLD_1a-0-genome.fa.gz' \
+# 'BMC_2a-0-genome.fa.gz' \
+# 'BPG-0-genome.fa.gz' \
+# 'BPK-1-genome.fa.gz' \
+# 'BPK-2-genome.fa.gz' \
+# 'CAS_1a-0-genome.fa.gz' \
+# 'CBM-1-genome.fa.gz' \
+# 'CBM-2-genome.fa.gz' \
+# 'CCC_1a-0-genome.fa.gz' \
+# 'CCQ_1a-0-genome.fa.gz' \
+# 'CCT_1a-0-genome.fa.gz' \
+# 'CDA-0-genome.fa.gz' \
+# 'CDG_1a-0-genome.fa.gz' \
+# 'CDN_1a-0-genome.fa.gz' \
+# 'CEI_1a-0-genome.fa.gz' \
+# 'CEL_1a-0-genome.fa.gz' \
+# 'CEQ_1a-0-genome.fa.gz' \
+# 'CFA-0-genome.fa.gz' \
+# 'CFF-1-genome.fa.gz' \
+# 'CFF-2-genome.fa.gz' \
+# 'CIC-1-genome.fa.gz' \
+# 'CIC-2-genome.fa.gz' \
+# 'CIH-1-genome.fa.gz' \
+# 'CIH-2-genome.fa.gz' \
+# 'CKB-1-genome.fa.gz' \
+# 'CKB-2-genome.fa.gz' \
+# 'CLL-1-genome.fa.gz' \
+# 'CLL-2-genome.fa.gz' \
+# 'CLN-0-genome.fa.gz' \
+# 'CMF-1-genome.fa.gz' \
+# 'CMF-2-genome.fa.gz' \
+# 'CNT-1-genome.fa.gz' \
+# 'CNT-2-genome.fa.gz' \
+# 'CPG_1a-0-genome.fa.gz' \
+# 'CQS_1a-0-genome.fa.gz' \
+# 'CRB_1a-0-genome.fa.gz' \
+# 'DBVPG6044-0-genome.fa.gz' \
+# 'YPS128-0-genome.fa.gz' \
+# 'UWOPS034614-0-genome.fa.gz' \
+# 'CBS432-0-genome.fa.gz')
+
+# ### scsp hc
+# nuc_assemblies=('SGDref-0-genome.fa.gz' \
+# 'AAB-0-genome.fa.gz' \
+# 'AAC-0-genome.fa.gz' \
+# 'AAR-0-genome.fa.gz' \
+# 'ABA-0-genome.fa.gz' \
+# 'ABH-0-genome.fa.gz' \
+# 'ACH-0-genome.fa.gz' \
+# 'ADE-0-genome.fa.gz' \
+# 'ADI-0-genome.fa.gz' \
+# 'ADM-0-genome.fa.gz' \
+# 'ADQ-0-genome.fa.gz' \
+# 'ADS-0-genome.fa.gz' \
+# 'AEG-0-genome.fa.gz' \
+# 'AEH-0-genome.fa.gz' \
+# 'AEL-0-genome.fa.gz' \
+# 'AFH-0-genome.fa.gz' \
+# 'AFI-0-genome.fa.gz' \
+# 'AGA_1a-0-genome.fa.gz' \
+# 'AGK-0-genome.fa.gz' \
+# 'AHG-0-genome.fa.gz' \
+# 'AHL-0-genome.fa.gz' \
+# 'AIC-0-genome.fa.gz' \
+# 'AIE-0-genome.fa.gz' \
+# 'AIF-0-genome.fa.gz' \
+# 'AIG-0-genome.fa.gz' \
+# 'AIS-0-genome.fa.gz' \
+# 'AKH_1a-0-genome.fa.gz' \
+# 'AKR-0-genome.fa.gz' \
+# 'ALI-0-genome.fa.gz' \
+# 'ALS_1a-0-genome.fa.gz' \
+# 'AMH_1a-0-genome.fa.gz' \
+# 'AMM_1a-0-genome.fa.gz' \
+# 'ANE-0-genome.fa.gz' \
+# 'APG-0-genome.fa.gz' \
+# 'ASB-0-genome.fa.gz' \
+# 'ASG-0-genome.fa.gz' \
+# 'ASN-0-genome.fa.gz' \
+# 'ATM_1a-0-genome.fa.gz' \
+# 'AVB-0-genome.fa.gz' \
+# 'AVI_1a-0-genome.fa.gz' \
+# 'BAF-0-genome.fa.gz' \
+# 'BAG_1a-0-genome.fa.gz' \
+# 'BAH-0-genome.fa.gz' \
+# 'BAI_1a-0-genome.fa.gz' \
+# 'BAK_1a-0-genome.fa.gz' \
+# 'BAL_1a-0-genome.fa.gz' \
+# 'BAM-0-genome.fa.gz' \
+# 'BAP_1a-0-genome.fa.gz' \
+# 'BAQ_1a-0-genome.fa.gz' \
+# 'BBF-0-genome.fa.gz' \
+# 'BBL-0-genome.fa.gz' \
+# 'BBM_1a-0-genome.fa.gz' \
+# 'BCN-0-genome.fa.gz' \
+# 'BFH-0-genome.fa.gz' \
+# 'BFP_1a-0-genome.fa.gz' \
+# 'BHH-0-genome.fa.gz' \
+# 'BLD_1a-0-genome.fa.gz' \
+# 'BMC_2a-0-genome.fa.gz' \
+# 'BPG-0-genome.fa.gz' \
+# 'BPK-0-genome.fa.gz' \
+# 'CAS_1a-0-genome.fa.gz' \
+# 'CBM-0-genome.fa.gz' \
+# 'CCC_1a-0-genome.fa.gz' \
+# 'CCQ_1a-0-genome.fa.gz' \
+# 'CCT_1a-0-genome.fa.gz' \
+# 'CDA-0-genome.fa.gz' \
+# 'CDG_1a-0-genome.fa.gz' \
+# 'CDN_1a-0-genome.fa.gz' \
+# 'CEI_1a-0-genome.fa.gz' \
+# 'CEL_1a-0-genome.fa.gz' \
+# 'CEQ_1a-0-genome.fa.gz' \
+# 'CFA-0-genome.fa.gz' \
+# 'CFF-0-genome.fa.gz' \
+# 'CIC-0-genome.fa.gz' \
+# 'CIH-0-genome.fa.gz' \
+# 'CKB-0-genome.fa.gz' \
+# 'CLL-0-genome.fa.gz' \
+# 'CLN-0-genome.fa.gz' \
+# 'CMF-0-genome.fa.gz' \
+# 'CNT-0-genome.fa.gz' \
+# 'CPG_1a-0-genome.fa.gz' \
+# 'CQS_1a-0-genome.fa.gz' \
+# 'CRB_1a-0-genome.fa.gz' \
+# 'DBVPG6044-0-genome.fa.gz' \
+# 'YPS128-0-genome.fa.gz' \
+# 'JXXY161-0-genome.fa.gz' \
+# 'CBS432-0-genome.fa.gz')
+
+# ### scspsj phhd data
+# nuc_assemblies=('SGDref-0-genome.fa.gz' \
+# 'BPK-1-genome.fa.gz' \
+# 'BPK-2-genome.fa.gz' \
+# 'AIS-1-genome.fa.gz' \
+# 'AIS-2-genome.fa.gz' \
+# 'AHL-0-genome.fa.gz' \
+# 'BFH-1-genome.fa.gz' \
+# 'BFH-2-genome.fa.gz' \
+# 'CMF-1-genome.fa.gz' \
+# 'CMF-2-genome.fa.gz' \
+# 'BMC_2a-0-genome.fa.gz' \
+# 'AMH_1a-0-genome.fa.gz' \
+# 'JXXY161-0-genome.fa.gz' \
+# 'CBS432-0-genome.fa.gz' \
+# 'N44-0-genome.fa.gz' \
+# 'UFRJ50816-0-genome.fa.gz' \
+# 'UWOPS919171-0-genome.fa.gz' \
+# 'YPS138-0-genome.fa.gz' \
+# 'NCYC3947-0-genome.fa.gz')
+
+### scspsj hc data
 nuc_assemblies=('SGDref-0-genome.fa.gz' \
-'AAB-0-genome.fa.gz' \
-'AAC-0-genome.fa.gz' \
-'AAR-0-genome.fa.gz' \
-'ABA-0-genome.fa.gz' \
-'ABH-0-genome.fa.gz' \
-'ACH-0-genome.fa.gz' \
-'ADE-0-genome.fa.gz' \
-'ADI-0-genome.fa.gz' \
-'ADM-0-genome.fa.gz' \
-'ADQ-0-genome.fa.gz' \
-'ADS-0-genome.fa.gz' \
-'AEG-0-genome.fa.gz' \
-'AEH-0-genome.fa.gz' \
-'AEL-0-genome.fa.gz' \
-'AFH-0-genome.fa.gz' \
-'AFI-0-genome.fa.gz' \
-'AGA_1a-0-genome.fa.gz' \
-'AGK-0-genome.fa.gz' \
-'AHG-0-genome.fa.gz' \
-'AHL-0-genome.fa.gz' \
-'AIC-0-genome.fa.gz' \
-'AIE-0-genome.fa.gz' \
-'AIF-0-genome.fa.gz' \
-'AIG-0-genome.fa.gz' \
-'AIS-0-genome.fa.gz' \
-'AKH_1a-0-genome.fa.gz' \
-'AKR-0-genome.fa.gz' \
-'ALI-0-genome.fa.gz' \
-'ALS_1a-0-genome.fa.gz' \
-'AMH_1a-0-genome.fa.gz' \
-'AMM_1a-0-genome.fa.gz' \
-'ANE-0-genome.fa.gz' \
-'APG-0-genome.fa.gz' \
-'ASB-0-genome.fa.gz' \
-'ASG-0-genome.fa.gz' \
-'ASN-0-genome.fa.gz' \
-'ATM_1a-0-genome.fa.gz' \
-'AVB-0-genome.fa.gz' \
-'AVI_1a-0-genome.fa.gz' \
-'BAF-0-genome.fa.gz' \
-'BAG_1a-0-genome.fa.gz' \
-'BAH-0-genome.fa.gz' \
-'BAI_1a-0-genome.fa.gz' \
-'BAK_1a-0-genome.fa.gz' \
-'BAL_1a-0-genome.fa.gz' \
-'BAM-0-genome.fa.gz' \
-'BAP_1a-0-genome.fa.gz' \
-'BAQ_1a-0-genome.fa.gz' \
-'BBF-0-genome.fa.gz' \
-'BBL-0-genome.fa.gz' \
-'BBM_1a-0-genome.fa.gz' \
-'BCN-0-genome.fa.gz' \
-'BFH-0-genome.fa.gz' \
-'BFP_1a-0-genome.fa.gz' \
-'BHH-0-genome.fa.gz' \
-'BLD_1a-0-genome.fa.gz' \
-'BMC_2a-0-genome.fa.gz' \
-'BPG-0-genome.fa.gz' \
 'BPK-0-genome.fa.gz' \
-'CAS_1a-0-genome.fa.gz' \
-'CBM-0-genome.fa.gz' \
-'CCC_1a-0-genome.fa.gz' \
-'CCQ_1a-0-genome.fa.gz' \
-'CCT_1a-0-genome.fa.gz' \
-'CDA-0-genome.fa.gz' \
-'CDG_1a-0-genome.fa.gz' \
-'CDN_1a-0-genome.fa.gz' \
-'CEI_1a-0-genome.fa.gz' \
-'CEL_1a-0-genome.fa.gz' \
-'CEQ_1a-0-genome.fa.gz' \
-'CFA-0-genome.fa.gz' \
-'CFF-0-genome.fa.gz' \
-'CIC-0-genome.fa.gz' \
-'CIH-0-genome.fa.gz' \
-'CKB-0-genome.fa.gz' \
-'CLL-0-genome.fa.gz' \
-'CLN-0-genome.fa.gz' \
+'AIS-0-genome.fa.gz' \
+'AHL-0-genome.fa.gz' \
+'BFH-0-genome.fa.gz' \
 'CMF-0-genome.fa.gz' \
-'CNT-0-genome.fa.gz' \
-'CPG_1a-0-genome.fa.gz' \
-'CQS_1a-0-genome.fa.gz' \
-'CRB_1a-0-genome.fa.gz' \
-'DBVPG6044-0-genome.fa.gz' \
-'YPS128-0-genome.fa.gz' \
-'JXXY161-0-genome.fa.gz')
+'BMC_2a-0-genome.fa.gz' \
+'AMH_1a-0-genome.fa.gz' \
+'JXXY161-0-genome.fa.gz' \
+'CBS432-0-genome.fa.gz' \
+'N44-0-genome.fa.gz' \
+'UFRJ50816-0-genome.fa.gz' \
+'UWOPS919171-0-genome.fa.gz' \
+'YPS138-0-genome.fa.gz' \
+'NCYC3947-0-genome.fa.gz')
 
 ### fasta repository
 rep_fastas="${HOME}/data/nano-assemblies-pansn-2024"
@@ -1244,7 +1456,7 @@ set +m
 ### reference
 id_ref=('SGDref-0')
 ### the outgroup
-id_ogroup="AMH_1a-0"
+id_ogroup="NCYC3947-0"
 ### parallel threads
 pll_threads=44
 
@@ -1312,7 +1524,7 @@ set +m
 ### reference
 id_ref=('SGDref-0')
 ### the outgroup
-id_ogroup="AMH_1a-0"
+id_ogroup="NCYC3947-0"
 ### parallel threads
 pll_threads=44
 
@@ -1392,7 +1604,7 @@ dir_base=$(dirname "${PWD}")
 ### the name of the server as reported in .ssh/config
 server_name="hulk"
 ### source folders
-dir_server_base="prog/graphs/sc-hc"
+dir_server_base="prog/graphs/scspsj-hc"
 run_pggb="run-1"
 dir_in="${dir_server_base}/${run_pggb}"
 
@@ -1765,7 +1977,7 @@ set +m
 ### reference
 id_ref=('SGDref-0')
 ### the outgroup
-id_ogroup="AMH_1a-0"
+id_ogroup="NCYC3947-0"
 ### parallel threads
 pll_threads=44
 
@@ -2537,7 +2749,7 @@ dirTreDbt <- file.path(dirTre, "db2")
 dir.create(dirTreDbt, recursive = T, showWarnings = F)
 
 ### the outgroup sample
-idOutgroup <- "AMH_1a-0"
+idOutgroup <- "NCYC3947-0"
 
 ## clmnt ----------------------------------------------------------------------
 
