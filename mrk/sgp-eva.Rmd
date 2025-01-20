@@ -87,41 +87,8 @@ A repository with the fasta sequences is required. The repository is not within 
 
 The distance measure obtained from `odgi similarity` is also needed. It is stored in the `gra-dss` folder. It is calculated from the variation graph stored in the same folder.
 
-A full run will generate the following tree of folders:
-run-N
-|-- aln
-|   `-- wga
-|-- aux
-|-- dif-dst
-|-- dst
-|-- gen
-|   `-- ass
-|-- mrk
-|-- phy
-|   |-- cmp-apr
-|   |-- cmp-mdl
-|   |-- cmp-nja
-|   |-- iqt
-|   |   |-- nuc
-|   |   `-- pvg-msnps
-|   |-- nja
-|   |   |-- nuc
-|   |   |-- pos
-|   |   |-- db2
-|   |   `-- pvg
-|   `-- pb2
-|-- scr
-|-- var
-|   |-- all
-|   |   `-- pvg
-|   |-- small
-|   |   |-- nuc
-|   |   |   |-- ms-vcf
-|   |   |   `-- os-vcf
-|   |   `-- pvg
-|   `-- sv
-|       `-- pvg
-`-- gra-dss
+A full run will generate a tree of folders as the one reported in the main folder (`folder-tree.txt`).
+
 
 ## How Does `odgi similarity` Work?
 
@@ -3247,7 +3214,7 @@ cat("pb2-pos", "\t", valTrDst, "\n",
 
 Here, we compare nucmer's trees, the whole-genome tree against all single-chromosome trees.
 
-```{r}
+```{r compares nucmer wg tree vs nucmer sc trees}
 ## header ---------------------------------------------------------------------
 
 options(scipen = 999)
