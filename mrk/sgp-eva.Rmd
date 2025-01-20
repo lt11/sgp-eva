@@ -17,7 +17,7 @@ This is a list of the things that must be edited to have a quick run working pro
 - specify if mitochondrial data should be used with `with_mito` (TRUE/FALSE)
 - pick the genomes with `nuc_assemblies`
 - set the reference with `id_ref` and `idRef`
-- set the name of the outgroup with `id_ogroup` and `idOutgroup`
+- set the name of the outgroup (e.g. AMH_1a-0 or CBS432-0 or NCYC3947-0) with `id_ogroup` and `idOutgroup`
 - set the name of the server where pggb was run (`server_name`) along with the corresponding base folder (`dir_server_base`) and run name (`run_pggb`)
 - set `pll_runs`, `pll_threads`, and `pllThreads`
 - set the path the fasta files repository `rep_fastas`
