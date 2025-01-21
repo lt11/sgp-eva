@@ -21,7 +21,7 @@ This is a list of the things that must be edited to have a quick run working pro
 - set the name of the server where pggb was run (`server_name`) along with the corresponding base folder (`dir_server_base`) and run name (`run_pggb`)
 - set `pll_runs`, `pll_threads`, and `pllThreads`
 - set the path the fasta files repository `rep_fastas`
-- choose one chunk between the one that runs phybwt2/distbwt2 and the one that copies the phybwt2/distbwt2 data from a previous independet run
+- choose one chunk between the one that runs phybwt2/distbwt2 and the one that copies the phybwt2/distbwt2 data from a previous independent run
 
 ## Dependencies and Requirements
 
