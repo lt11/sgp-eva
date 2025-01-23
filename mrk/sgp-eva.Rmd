@@ -108,17 +108,17 @@ First, we need to make a copy of the input fasta files and decide chose if we wa
 ### with mitochondrial sequence in one haplotype?
 with_mito="FALSE"
 
-# ### sc toy data
-# nuc_assemblies=('SGDref-0-genome.fa.gz' \
-# 'DBVPG6765-0-genome.fa.gz' \
-# 'CMF-1-genome.fa.gz' \
-# 'CMF-2-genome.fa.gz' \
-# 'AAR-0-genome.fa.gz' \
-# 'ABA-0-genome.fa.gz' \
-# 'ABH-0-genome.fa.gz' \
-# 'AMH_1a-0-genome.fa.gz' \
-# 'YPS128-0-genome.fa.gz' \
-# 'S288C-0-genome.fa.gz')
+### sc toy data
+nuc_assemblies=('SGDref-0-genome.fa.gz' \
+'DBVPG6765-0-genome.fa.gz' \
+'CMF-1-genome.fa.gz' \
+'CMF-2-genome.fa.gz' \
+'AAR-0-genome.fa.gz' \
+'ABA-0-genome.fa.gz' \
+'ABH-0-genome.fa.gz' \
+'AMH_1a-0-genome.fa.gz' \
+'YPS128-0-genome.fa.gz' \
+'S288C-0-genome.fa.gz')
 
 # ### sc phhd data
 # nuc_assemblies=('SGDref-0-genome.fa.gz' \
@@ -550,22 +550,22 @@ with_mito="FALSE"
 # 'YPS138-0-genome.fa.gz' \
 # 'NCYC3947-0-genome.fa.gz')
 
-### scspsj hc data
-nuc_assemblies=('SGDref-0-genome.fa.gz' \
-'BPK-0-genome.fa.gz' \
-'AIS-0-genome.fa.gz' \
-'AHL-0-genome.fa.gz' \
-'BFH-0-genome.fa.gz' \
-'CMF-0-genome.fa.gz' \
-'BMC_2a-0-genome.fa.gz' \
-'AMH_1a-0-genome.fa.gz' \
-'JXXY161-0-genome.fa.gz' \
-'CBS432-0-genome.fa.gz' \
-'N44-0-genome.fa.gz' \
-'UFRJ50816-0-genome.fa.gz' \
-'UWOPS919171-0-genome.fa.gz' \
-'YPS138-0-genome.fa.gz' \
-'NCYC3947-0-genome.fa.gz')
+# ### scspsj hc data
+# nuc_assemblies=('SGDref-0-genome.fa.gz' \
+# 'BPK-0-genome.fa.gz' \
+# 'AIS-0-genome.fa.gz' \
+# 'AHL-0-genome.fa.gz' \
+# 'BFH-0-genome.fa.gz' \
+# 'CMF-0-genome.fa.gz' \
+# 'BMC_2a-0-genome.fa.gz' \
+# 'AMH_1a-0-genome.fa.gz' \
+# 'JXXY161-0-genome.fa.gz' \
+# 'CBS432-0-genome.fa.gz' \
+# 'N44-0-genome.fa.gz' \
+# 'UFRJ50816-0-genome.fa.gz' \
+# 'UWOPS919171-0-genome.fa.gz' \
+# 'YPS138-0-genome.fa.gz' \
+# 'NCYC3947-0-genome.fa.gz')
 
 ### fasta repository
 rep_fastas="${HOME}/data/nano-assemblies-pansn-2024"
@@ -665,7 +665,7 @@ for (( ind_i=0; ind_i<dim_seq_dim; ind_i++ )); do
   fi
   
   name_i=$(echo "${arr_fasta[ind_i]}" | sed 's|-genome\.fa||' | sed 's|^..||')
-  if [[ "${id_ref}" ==  "${name_i}" ]]; then
+  if [[ "${id_ref}" == "${name_i}" ]]; then
     continue
   fi
   
@@ -3076,7 +3076,7 @@ plot(nwkMrg,
      link.type = "curved",
      link.lwd = 3,
      link.lty = "solid",
-     link.col = make.transparent("blue", 0.25),
+     link.col = make.transparent("black", 0.25),
      fsize = 1.5)
 tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "turquoise",
                   bg = "turquoise", frame = "none")
@@ -3115,7 +3115,7 @@ plot(nwkMrg,
      link.type = "curved",
      link.lwd = 3,
      link.lty = "solid",
-     link.col = make.transparent("red", 0.25),
+     link.col = make.transparent("black", 0.25),
      fsize = 1.5)
 tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "turquoise",
                   bg = "turquoise", frame = "none")
@@ -3282,10 +3282,10 @@ for (indS in pathNwkSc) {
        link.lty = "solid",
        link.col = make.transparent("black", 0.25),
        fsize = 1.5)
-  tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "red",
-                    bg = "red", frame = "none")
-  tiplabels.cophylo(which = "right", pch = 21, cex = 1.5, col = "blue",
-                    bg = "blue", frame = "none")
+  tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "turquoise",
+                    bg = "turquoise", frame = "none")
+  tiplabels.cophylo(which = "right", pch = 21, cex = 1.5, col = "turquoise4",
+                    bg = "turquoise4", frame = "none")
   dev.off()
   
   ### generalised Robinson–Foulds distance
