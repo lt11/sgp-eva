@@ -703,7 +703,6 @@ Now we can convert the nucmer output to a vcf file.
 ```{r makes the single-sample SNPs/indels files}
 ## header ---------------------------------------------------------------------
 
-options(java.parameters="-Xmx16G")
 options(scipen = 999)
 options(stringsAsFactors = F)
 rm(list = ls())
@@ -783,7 +782,8 @@ for (indF in allFiles) {
   
   ## load nucmer data ---------------------------------------------------------
   
-  dtNucmer <- fread(indF, header = F, sep = "\t", na.strings = "antani")
+  dtNucmer <- fread(indF, header = F, sep = "\t", na.strings = "antani",
+                    tmpdir = dirBase)
   colnames(dtNucmer) <- hdShowSnp
   
   ## prepare the header -------------------------------------------------------
@@ -1129,7 +1129,6 @@ Obviously, they correspond to SNPs with the "reverse" tag: 74 C T 230857 2 74 1 
 ```{r searches for missing genotypes}
 ## header ---------------------------------------------------------------------
 
-options(java.parameters="-Xmx16G")
 options(stringsAsFactors = F)
 rm(list = ls())
 library(data.table)
@@ -1170,7 +1169,8 @@ strBashHeader <- paste0("bgzip -b -c ", fileInSnps, " | grep ^# > ",
 system(strBashHeader)
 
 ### load the data
-dtInVcf <- fread(fileInSnps, sep = "\t", na.strings = "antani")
+dtInVcf <- fread(fileInSnps, sep = "\t", na.strings = "antani",
+                 tmpdir = baseDir)
 colnames(dtInVcf)[1] <- "CHROM"
 
 ### remove non-biallelic loci
@@ -1206,7 +1206,7 @@ for (indS in sampNames) {
     ### stop prints "Error: " in front of the text specified
     stop("alignment IDs do not match the IDs of the input SNP vcf file.")
   }
-  dtAln <- fread(fileAln, sep = "\t", na.strings = "antani")
+  dtAln <- fread(fileAln, sep = "\t", na.strings = "antani", tmpdir = baseDir)
   colnames(dtAln) <- hdAlnCoords
 
   ### subset vcf and format loci for the comparison
@@ -1259,7 +1259,7 @@ strBashHeader <- paste0("bgzip -b -c ", fileInIndels, " | grep ^# > ",
 system(strBashHeader)
 
 ### load the data
-dtInVcf <- fread(fileInIndels, na.strings = "antani")
+dtInVcf <- fread(fileInIndels, na.strings = "antani", tmpdir = dirBase)
 colnames(dtInVcf)[1] <- "CHROM"
 
 ### remove non-biallelic loci
@@ -1295,7 +1295,7 @@ for (indS in sampNames) {
     ### stop prints "Error: " in front of the text specified
     stop("alignment IDs do not match the IDs of the input SNP vcf file.")
   }
-  dtAln <- fread(fileAln, sep = "\t", na.strings = "antani")
+  dtAln <- fread(fileAln, sep = "\t", na.strings = "antani", tmpdir = dirBase)
   colnames(dtAln) <- hdAlnCoords
 
   ### subset vcf and format loci for the comparison
@@ -1612,7 +1612,6 @@ This step consumes quite a lot of RAM.
 ```{r formats pggb-vg vcf file and extracts SNPs and indels}
 ## header ---------------------------------------------------------------------
 
-options(java.parameters="-Xmx16G")
 options(stringsAsFactors = F)
 rm(list = ls())
 library(data.table)
@@ -1703,7 +1702,8 @@ unlink(pathTmp)
 
 ## read the vcf ---------------------------------------------------------------
 
-dtVcf <- fread(file = inFile, sep = "\t", na.strings = "antani")
+dtVcf <- fread(file = inFile, sep = "\t", na.strings = "antani",
+               tmpdir = dirBase)
 # colnames(dtVcf)[1] <- "CHROM"
 
 ## correct empty GT values ----------------------------------------------------
@@ -1790,7 +1790,7 @@ system(strBashUnroll)
 
 ### the unrolled vcf we need to classify variants (other than pure SNPs)
 dtUnrolled <- fread(input = pathTmpUnrolled, header = T, sep = "\t",
-                    na.strings = "antani")
+                    na.strings = "antani", tmpdir = dirBase)
 ### cleaning
 unlink(pathTmpUnrolled)
 
@@ -2002,7 +2002,6 @@ Now we can use the SNPs, the indels, and the small variants vcf files from nucme
 ```{r calculates the cosine distances from nucmer and pggb-vg}
 ## header ---------------------------------------------------------------------
 
-options(java.parameters="-Xmx16G")
 options(stringsAsFactors = F)
 rm(list = ls())
 library(scriptName)
