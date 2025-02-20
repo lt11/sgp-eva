@@ -2830,10 +2830,10 @@ for (indT in 1:length(strClassesPvg)) {
        link.lty = "solid",
        link.col = make.transparent("black", 0.25),
        fsize = 1.5)
-  tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "red",
-                    bg = "red", frame = "none")
-  tiplabels.cophylo(which = "right", pch = 21, cex = 1.5, col = "blue",
-                    bg = "blue", frame = "none")
+  tiplabels.cophylo(which = "left", pch = 18, cex = 3, col = "red",
+                    frame = "none")
+  tiplabels.cophylo(which = "right", pch = 18, cex = 3, col = "blue",
+                    frame = "none")
   dev.off()
   
   ### generalised Robinson–Foulds distance
@@ -2873,10 +2873,10 @@ plot(nwkMrg,
      link.lty = "solid",
      link.col = make.transparent("black", 0.25),
      fsize = 1.5)
-tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "red",
-                  bg = "red", frame = "none")
-tiplabels.cophylo(which = "right", pch = 21, cex = 1.5, col = "green4",
-                  bg = "green4", frame = "none")
+tiplabels.cophylo(which = "left", pch = 18, cex = 3, col = "red",
+                  frame = "none")
+tiplabels.cophylo(which = "right", pch = 18, cex = 3, col = "green4",
+                  frame = "none")
 dev.off()
 
 ### generalised Robinson–Foulds distance
@@ -2912,10 +2912,10 @@ plot(nwkMrg,
      link.lty = "solid",
      link.col = make.transparent("black", 0.25),
      fsize = 1.5)
-tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "blue",
-                  bg = "blue", frame = "none")
-tiplabels.cophylo(which = "right", pch = 21, cex = 1.5, col = "green4",
-                  bg = "green4", frame = "none")
+tiplabels.cophylo(which = "left", pch = 18, cex = 3, col = "blue",
+                  frame = "none")
+tiplabels.cophylo(which = "right", pch = 18, cex = 3, col = "green4",
+                  frame = "none")
 dev.off()
 
 ### generalised Robinson–Foulds distance
@@ -2954,10 +2954,10 @@ plot(nwkMrg,
      link.lty = "solid",
      link.col = make.transparent("black", 0.25),
      fsize = 1.5)
-tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "purple",
-                  bg = "purple", frame = "none")
-tiplabels.cophylo(which = "right", pch = 21, cex = 1.5, col = "green4",
-                  bg = "green4", frame = "none")
+tiplabels.cophylo(which = "left", pch = 18, cex = 3, col = "purple",
+                  frame = "none")
+tiplabels.cophylo(which = "right", pch = 18, cex = 3, col = "green4",
+                  frame = "none")
 dev.off()
 
 ### generalised Robinson–Foulds distance
@@ -2993,10 +2993,10 @@ plot(nwkMrg,
      link.lty = "solid",
      link.col = make.transparent("black", 0.25),
      fsize = 1.5)
-tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "purple",
-                  bg = "purple", frame = "none")
-tiplabels.cophylo(which = "right", pch = 21, cex = 1.5, col = "red",
-                  bg = "red", frame = "none")
+tiplabels.cophylo(which = "left", pch = 18, cex = 3, col = "purple",
+                  frame = "none")
+tiplabels.cophylo(which = "right", pch = 18, cex = 3, col = "red",
+                  frame = "none")
 dev.off()
 
 ### generalised Robinson–Foulds distance
@@ -3077,10 +3077,10 @@ plot(nwkMrg,
      link.lty = "solid",
      link.col = make.transparent("black", 0.25),
      fsize = 1.5)
-tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "turquoise",
-                  bg = "turquoise", frame = "none")
-tiplabels.cophylo(which = "right", pch = 21, cex = 1.5, col = "gold",
-                  bg = "gold", frame = "none")
+tiplabels.cophylo(which = "left", pch = 19, cex = 3, col = "blue",
+                  frame = "none")
+tiplabels.cophylo(which = "right", pch = 18, cex = 3, col = "blue",
+                  frame = "none")
 dev.off()
 
 ### generalised Robinson–Foulds distance
@@ -3116,10 +3116,10 @@ plot(nwkMrg,
      link.lty = "solid",
      link.col = make.transparent("black", 0.25),
      fsize = 1.5)
-tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "turquoise",
-                  bg = "turquoise", frame = "none")
-tiplabels.cophylo(which = "right", pch = 21, cex = 1.5, col = "gold",
-                  bg = "gold", frame = "none")
+tiplabels.cophylo(which = "left", pch = 19, cex = 3, col = "red",
+                  frame = "none")
+tiplabels.cophylo(which = "right", pch = 18, cex = 3, col = "red",
+                  frame = "none")
 dev.off()
 
 ### generalised Robinson–Foulds distance
@@ -3197,10 +3197,10 @@ plot(nwkMrg,
      link.lty = "solid",
      link.col = make.transparent("black", 0.25),
      fsize = 1.5)
-tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "purple",
-                  bg = "purple", frame = "none")
-tiplabels.cophylo(which = "right", pch = 21, cex = 1.5, col = "green4",
-                  bg = "green4", frame = "none")
+tiplabels.cophylo(which = "left", pch = 18, cex = 3, col = "purple",
+                  frame = "none")
+tiplabels.cophylo(which = "right", pch = 18, cex = 3, col = "green4",
+                  frame = "none")
 dev.off()
 
 ### generalised Robinson–Foulds distance
@@ -3281,10 +3281,10 @@ for (indS in pathNwkSc) {
        link.lty = "solid",
        link.col = make.transparent("black", 0.25),
        fsize = 1.5)
-  tiplabels.cophylo(which = "left", pch = 21, cex = 1.5, col = "turquoise",
-                    bg = "turquoise", frame = "none")
-  tiplabels.cophylo(which = "right", pch = 21, cex = 1.5, col = "turquoise4",
-                    bg = "turquoise4", frame = "none")
+  tiplabels.cophylo(which = "left", pch = 19, cex = 3, col = "red",
+                    frame = "none")
+  tiplabels.cophylo(which = "right", pch = 19, cex = 3, col = "red3",
+                    frame = "none")
   dev.off()
   
   ### generalised Robinson–Foulds distance
@@ -3298,5 +3298,283 @@ for (indS in pathNwkSc) {
 
 ```
 
+We can also compare apples (neighbour-joining trees) against oranges (iqtree2 phylogenies).
+
+```{r compares apples (nja) and oranges (iqt)}
+## header ---------------------------------------------------------------------
+
+options(scipen = 999)
+options(stringsAsFactors = F)
+rm(list = ls())
+library(scriptName)
+library(here)
+library(phytools)
+library(TreeDist)
+
+## settings -------------------------------------------------------------------
+
+### fixed settings
+dirBase <- dirname(here())
+
+### input folder
+dirInput <- file.path(dirBase, "phy")
+### output folder
+dirOutput <- file.path(dirBase, "phy", "cmp-aao")
+unlink(dirOutput, recursive = T)
+dir.create(dirOutput, showWarnings = F)
+### output trees-distances file
+pathTreeDstAoo <- file.path(dirBase, "phy", "cmp-aao", "dst-aao.txt")
+unlink(pathTreeDstAoo)
+
+## clmnt ----------------------------------------------------------------------
+
+### write the header 
+cat("tree 1", "\t", "tree 2", "\t" ,"GRF distance", "\n", sep = "",
+    file = pathTreeDstAoo)
+
+## nja-pos-nref vs iqt-nuc-snps -----------------------------------------------
+
+### load the two newick files
+pathNwkOne <- list.files(file.path(dirInput, "nja", "pos"),
+                         pattern = "pos-nref.tree",
+                         recursive = T, full.names = T)
+pathNwkTwo <- list.files(file.path(dirInput, "iqt", "nuc"),
+                         pattern = "multis-snps-genfix-noinv.*treefile",
+                         recursive = T, full.names = T)
+nwkOne <- read.newick(pathNwkOne)
+nwkTwo <- read.newick(pathNwkTwo)
+### concatenate
+nwkMrg <- cophylo(nwkOne, nwkTwo, print = T, rotate = T)
+### set output
+nameOut <- paste0("nja-pos-nref", "-a-",
+                  "iqt-nuc-snps", ".pdf")
+pathOut <- file.path(dirOutput, nameOut)
+### plot
+pdf(file = pathOut, width = 24, height = 30)
+plot(nwkMrg,
+     link.type = "curved",
+     link.lwd = 3,
+     link.lty = "solid",
+     link.col = make.transparent("black", 0.25),
+     fsize = 1.5)
+tiplabels.cophylo(which = "left", pch = 18, cex = 3, col = "green4",
+                  frame = "none")
+tiplabels.cophylo(which = "right", pch = 19, cex = 3, col = "red",
+                  frame = "none")
+dev.off()
+
+### generalised Robinson–Foulds distance
+valTrDst <- TreeDistance(nwkOne, nwkTwo)
+### write to output
+nameOne <- sub(pattern = "\\.tree$",
+               replacement = "",
+               x = basename(pathNwkOne))
+nameOneFull <- paste0("nja-", nameOne)
+nameTwoFull <- "iqt-nuc-snps"
+cat(nameOneFull, "\t", nameTwoFull, "\t", valTrDst, "\n",
+    sep = "", file = pathTreeDstAoo, append = T)
+
+## nja-pos-nref vs iqt-pvg-msnps ----------------------------------------------
+
+### load the two newick files
+pathNwkOne <- list.files(file.path(dirInput, "nja", "pos"),
+                         pattern = "pos-nref.tree",
+                         recursive = T, full.names = T)
+pathNwkTwo <- list.files(file.path(dirInput, "iqt", "pvg-msnps"),
+                         pattern = "multis-msnps-sampfix-noinv.*treefile",
+                         recursive = T, full.names = T)
+nwkOne <- read.newick(pathNwkOne)
+nwkTwo <- read.newick(pathNwkTwo)
+### concatenate
+nwkMrg <- cophylo(nwkOne, nwkTwo, print = T, rotate = T)
+### set output
+nameOut <- paste0("nja-pos-nref", "-a-",
+                  "iqt-pvg-msnps", ".pdf")
+pathOut <- file.path(dirOutput, nameOut)
+### plot
+pdf(file = pathOut, width = 24, height = 30)
+plot(nwkMrg,
+     link.type = "curved",
+     link.lwd = 3,
+     link.lty = "solid",
+     link.col = make.transparent("black", 0.25),
+     fsize = 1.5)
+tiplabels.cophylo(which = "left", pch = 18, cex = 3, col = "green4",
+                  frame = "none")
+tiplabels.cophylo(which = "right", pch = 19, cex = 3, col = "blue",
+                  frame = "none")
+dev.off()
+
+### generalised Robinson–Foulds distance
+valTrDst <- TreeDistance(nwkOne, nwkTwo)
+### write to output
+nameOne <- sub(pattern = "\\.tree$",
+               replacement = "",
+               x = basename(pathNwkOne))
+nameOneFull <- paste0("nja-", nameOne)
+nameTwoFull <- "iqt-pvg-msnps"
+cat(nameOneFull, "\t", nameTwoFull, "\t", valTrDst, "\n",
+    sep = "", file = pathTreeDstAoo, append = T)
+
+## nja-db2-nref vs iqt-nuc-snps -----------------------------------------------
+
+### load the two newick files
+pathNwkOne <- list.files(file.path(dirInput, "nja", "db2"),
+                         pattern = "db2-nref.tree",
+                         recursive = T, full.names = T)
+pathNwkTwo <- list.files(file.path(dirInput, "iqt", "nuc"),
+                         pattern = "multis-snps-genfix-noinv.*treefile",
+                         recursive = T, full.names = T)
+nwkOne <- read.newick(pathNwkOne)
+nwkTwo <- read.newick(pathNwkTwo)
+### concatenate
+nwkMrg <- cophylo(nwkOne, nwkTwo, print = T, rotate = T)
+### set output
+nameOut <- paste0("nja-db2-nref", "-a-",
+                  "iqt-nuc-snps", ".pdf")
+pathOut <- file.path(dirOutput, nameOut)
+### plot
+pdf(file = pathOut, width = 24, height = 30)
+plot(nwkMrg,
+     link.type = "curved",
+     link.lwd = 3,
+     link.lty = "solid",
+     link.col = make.transparent("black", 0.25),
+     fsize = 1.5)
+tiplabels.cophylo(which = "left", pch = 18, cex = 3, col = "purple",
+                  frame = "none")
+tiplabels.cophylo(which = "right", pch = 19, cex = 3, col = "red",
+                  frame = "none")
+dev.off()
+
+### generalised Robinson–Foulds distance
+valTrDst <- TreeDistance(nwkOne, nwkTwo)
+### write to output
+nameOne <- sub(pattern = "\\.tree$",
+               replacement = "",
+               x = basename(pathNwkOne))
+nameOneFull <- paste0("nja-", nameOne)
+nameTwoFull <- "iqt-nuc-snps"
+cat(nameOneFull, "\t", nameTwoFull, "\t", valTrDst, "\n",
+    sep = "", file = pathTreeDstAoo, append = T)
+
+## nja-db2-nref vs iqt-pvg-msnps ----------------------------------------------
+
+### load the two newick files
+pathNwkOne <- list.files(file.path(dirInput, "nja", "db2"),
+                         pattern = "db2-nref.tree",
+                         recursive = T, full.names = T)
+pathNwkTwo <- list.files(file.path(dirInput, "iqt", "pvg-msnps"),
+                         pattern = "multis-msnps-sampfix-noinv.*treefile",
+                         recursive = T, full.names = T)
+nwkOne <- read.newick(pathNwkOne)
+nwkTwo <- read.newick(pathNwkTwo)
+### concatenate
+nwkMrg <- cophylo(nwkOne, nwkTwo, print = T, rotate = T)
+### set output
+nameOut <- paste0("nja-db2-nref", "-a-",
+                  "iqt-pvg-msnps", ".pdf")
+pathOut <- file.path(dirOutput, nameOut)
+### plot
+pdf(file = pathOut, width = 24, height = 30)
+plot(nwkMrg,
+     link.type = "curved",
+     link.lwd = 3,
+     link.lty = "solid",
+     link.col = make.transparent("black", 0.25),
+     fsize = 1.5)
+tiplabels.cophylo(which = "left", pch = 18, cex = 3, col = "purple",
+                  frame = "none")
+tiplabels.cophylo(which = "right", pch = 19, cex = 3, col = "blue",
+                  frame = "none")
+dev.off()
+
+### generalised Robinson–Foulds distance
+valTrDst <- TreeDistance(nwkOne, nwkTwo)
+### write to output
+nameOne <- sub(pattern = "\\.tree$",
+               replacement = "",
+               x = basename(pathNwkOne))
+nameOneFull <- paste0("nja-", nameOne)
+nameTwoFull <- "iqt-pvg-msnps"
+cat(nameOneFull, "\t", nameTwoFull, "\t", valTrDst, "\n",
+    sep = "", file = pathTreeDstAoo, append = T)
+
+```
+
+Since in the previous chunk we used two iqtree2 phylogenies that may be topologically identical we'd better quantify their similarity.
+
+```{r compares the oranges}
+## header ---------------------------------------------------------------------
+
+options(scipen = 999)
+options(stringsAsFactors = F)
+rm(list = ls())
+library(scriptName)
+library(here)
+library(phytools)
+library(TreeDist)
+
+## settings -------------------------------------------------------------------
+
+### fixed settings
+dirBase <- dirname(here())
+
+### input folder
+dirInput <- file.path(dirBase, "phy")
+### output folder
+dirOutput <- file.path(dirBase, "phy", "cmp-iqt")
+unlink(dirOutput, recursive = T)
+dir.create(dirOutput, showWarnings = F)
+### output trees-distances file
+pathTreeDstAoo <- file.path(dirBase, "phy", "cmp-iqt", "dst-iqt.txt")
+unlink(pathTreeDstAoo)
+
+## clmnt ----------------------------------------------------------------------
+
+### write the header 
+cat("tree 1", "\t", "tree 2", "\t" ,"GRF distance", "\n", sep = "",
+    file = pathTreeDstAoo)
+
+## iqt-nuc-snps vs iqt-pvg-msnps ----------------------------------------------
+
+### load the two newick files
+pathNwkOne <- list.files(file.path(dirInput, "iqt", "nuc"),
+                         pattern = "multis-snps-genfix-noinv.*treefile",
+                         recursive = T, full.names = T)
+pathNwkTwo <- list.files(file.path(dirInput, "iqt", "pvg-msnps"),
+                         pattern = "multis-msnps-sampfix-noinv.*treefile",
+                         recursive = T, full.names = T)
+nwkOne <- read.newick(pathNwkOne)
+nwkTwo <- read.newick(pathNwkTwo)
+### concatenate
+nwkMrg <- cophylo(nwkOne, nwkTwo, print = T, rotate = T)
+### set output
+nameOut <- paste0("nuc-snps", "-",
+                  "pvg-msnps", ".pdf")
+pathOut <- file.path(dirOutput, nameOut)
+### plot
+pdf(file = pathOut, width = 24, height = 30)
+plot(nwkMrg,
+     link.type = "curved",
+     link.lwd = 3,
+     link.lty = "solid",
+     link.col = make.transparent("black", 0.25),
+     fsize = 1.5)
+tiplabels.cophylo(which = "left", pch = 19, cex = 3, col = "red",
+                  frame = "none")
+tiplabels.cophylo(which = "right", pch = 19, cex = 3, col = "blue",
+                  frame = "none")
+dev.off()
+
+### generalised Robinson–Foulds distance
+valTrDst <- TreeDistance(nwkOne, nwkTwo)
+### write to output
+nameOneFull <- "nuc-snps"
+nameTwoFull <- "pvg-msnps"
+cat(nameOneFull, "\t", nameTwoFull, "\t", valTrDst, "\n",
+    sep = "", file = pathTreeDstAoo, append = T)
+
+```
 
 Shall we also use weighted metrics (i.e. those metrics that take into account also branch lengths) to compare the trees? In that case we can use Goluch et al. as a reference to pick one. Also in Goluch et al. (Visual TreeCmp) there's a java tool for running the calculations.
