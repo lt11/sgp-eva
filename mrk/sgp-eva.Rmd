@@ -3211,7 +3211,7 @@ cat("pb2-pos", "\t", valTrDst, "\n",
 
 ```
 
-Here, we compare nucmer's trees, the whole-genome tree against all single-chromosome trees.
+Here, we compare nucmer's trees, the whole-genome tree against all single-chromosome trees. All the trees are made with iqtree2. Remarkably, the whole-genome tree (on the left panel) may look different comparing two different plots (e.g. "wg-chrII.pdf" and "wg-chrX.pdf"). This totally normal since branches are rotated to minimise "movements" of the leaves of the two trees.
 
 ```{r compares nucmer wg tree vs nucmer sc trees}
 ## header ---------------------------------------------------------------------
